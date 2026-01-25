@@ -1,0 +1,221 @@
+"""Kafka consumer for BOOM alerts."""
+
+import logging
+from collections.abc import Iterator
+
+from confluent_kafka import Consumer, KafkaError, KafkaException
+
+from .avro_utils import deserialize_alert
+from .config import MAIN_KAFKA_SERVER, BoomConfig
+from .exceptions import AuthenticationError, ConnectionError, DeserializationError
+from .models import BabamulZtfAlert, BabamulLsstAlert
+
+logger = logging.getLogger(__name__)
+
+
+class AlertConsumer:
+    """Consumer for BOOM Kafka alert streams.
+
+    A simple iterator-based interface for consuming astronomical transient
+    alerts from BOOM's Kafka topics.
+    """
+
+    def __init__(
+        self,
+        username: str | None = None,
+        password: str | None = None,
+        topics: str | list[str] = "",
+        server: str = MAIN_KAFKA_SERVER,
+        group_id: str | None = None,
+        offset: str = "latest",
+        timeout: float | None = None,
+    ) -> None:
+        """Initialize the alert consumer.
+
+        Args:
+            username: BOOM Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
+            password: BOOM Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
+            topics: Kafka topic(s) to subscribe to. Can be a string or list of strings.
+                   Example: "babamul.ztf.*" or ["babamul.ztf.*", "babamul.lsst.*"]
+            server: Kafka bootstrap server. Defaults to BOOM's server.
+                    Can also be set via BOOM_SERVER env var.
+            group_id: Kafka consumer group ID. Auto-generated if not provided.
+            offset: Where to start consuming: "latest" (default) or "earliest".
+            timeout: Timeout in seconds between messages. None means wait forever.
+
+        Raises:
+            ValueError: If required credentials are missing.
+            ConnectionError: If connection to Kafka fails.
+            AuthenticationError: If authentication fails.
+        """
+        # Load configuration (supports environment variables)
+        self._config = BoomConfig.from_env(
+            username=username,
+            password=password,
+            server=server,
+            group_id=group_id,
+            offset=offset,
+            timeout=timeout,
+        )
+
+        # Normalize topics to a list
+        if isinstance(topics, str):
+            self._topics = [topics] if topics else []
+        else:
+            self._topics = list(topics)
+
+        if not self._topics:
+            raise ValueError("At least one topic must be specified")
+
+        # Generate group_id if not provided
+        self._group_id = self._config.group_id or f"{self._config.username}-client"
+
+        # Timeout in milliseconds for poll(), -1 means infinite
+        self._poll_timeout_ms = (
+            int(self._config.timeout * 1000) if self._config.timeout else -1
+        )
+
+        # Create Kafka consumer
+        self._consumer: Consumer | None = None
+        self._closed = False
+
+    def _create_consumer(self) -> Consumer:
+        """Create and configure the Kafka consumer."""
+        config: dict[str, str | int | bool] = {
+            "bootstrap.servers": self._config.server,
+            "group.id": self._group_id,
+            "auto.offset.reset": self._config.offset,
+            "enable.auto.commit": True,
+            "security.protocol": "SASL_PLAINTEXT",
+            "sasl.mechanism": "SCRAM-SHA-512",
+            "sasl.username": self._config.username,
+            "sasl.password": self._config.password,
+            # Performance tuning
+            "fetch.min.bytes": 1,
+            "fetch.wait.max.ms": 500,
+        }
+
+        try:
+            consumer = Consumer(config)
+            consumer.subscribe(self._topics)
+            logger.info(f"Subscribed to topics: {self._topics}")
+            return consumer
+        except KafkaException as e:
+            error_str = str(e)
+            if "authentication" in error_str.lower() or "sasl" in error_str.lower():
+                raise AuthenticationError(f"Authentication failed: {e}") from e
+            raise ConnectionError(f"Failed to connect to Kafka: {e}") from e
+
+    def _ensure_consumer(self) -> Consumer:
+        """Ensure the consumer is created and return it."""
+        if self._consumer is None:
+            self._consumer = self._create_consumer()
+        return self._consumer
+
+    def __iter__(self) -> Iterator[BabamulZtfAlert | BabamulLsstAlert]:
+        """Iterate over alerts from the subscribed topics.
+
+        Yields:
+            BabamulZtfAlert | BabamulLsstAlert objects as they are received from Kafka.
+        Raises:
+            ConnectionError: If connection to Kafka is lost.
+            DeserializationError: If alert deserialization fails.
+        """
+        consumer = self._ensure_consumer()
+
+        # Calculate poll timeout in seconds (-1 means infinite wait)
+        poll_timeout: float = (
+            self._poll_timeout_ms / 1000.0 if self._poll_timeout_ms > 0 else -1.0
+        )
+
+        while not self._closed:
+            try:
+                msg = consumer.poll(timeout=poll_timeout)
+
+                if msg is None:
+                    # Timeout reached
+                    if self._config.timeout is not None:
+                        logger.debug("Poll timeout reached, no more messages")
+                        break
+                    continue
+
+                error = msg.error()
+                if error:
+                    # Use getattr for KafkaError constants for better type compatibility
+                    partition_eof = getattr(KafkaError, "_PARTITION_EOF", None)
+                    all_brokers_down = getattr(KafkaError, "_ALL_BROKERS_DOWN", None)
+
+                    if partition_eof is not None and error.code() == partition_eof:
+                        # End of partition, continue polling
+                        logger.debug(f"Reached end of partition {msg.partition()}")
+                        continue
+                    elif all_brokers_down is not None and error.code() == all_brokers_down:
+                        raise ConnectionError("All Kafka brokers are down")
+                    else:
+                        logger.warning(f"Kafka error: {error}")
+                        continue
+
+                # Deserialize the Avro message
+                try:
+                    data = msg.value()
+                    if data is None:
+                        continue
+
+                    alert_dict = deserialize_alert(data)
+                        
+                    # if the topic starts with babamul.ztf, use BabamulZtfAlert
+                    if msg.topic().startswith("babamul.ztf"):
+                        alert = BabamulZtfAlert.model_validate(alert_dict)
+                    elif msg.topic().startswith("babamul.lsst"):
+                        alert = BabamulLsstAlert.model_validate(alert_dict)
+                    else:
+                        logger.error(f"Unknown topic format: {msg.topic()}")
+                        continue
+                    yield alert
+
+                except DeserializationError as e:
+                    logger.error(f"Failed to deserialize message: {e}")
+                    # Continue to next message instead of failing
+                    continue
+
+            except KeyboardInterrupt:
+                logger.info("Interrupted by user")
+                break
+
+    def __enter__(self) -> "AlertConsumer":
+        """Enter context manager."""
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: object,
+    ) -> None:
+        """Exit context manager and close consumer."""
+        self.close()
+
+    def close(self) -> None:
+        """Close the Kafka consumer and release resources."""
+        if self._closed:
+            return
+
+        self._closed = True
+        if self._consumer is not None:
+            try:
+                self._consumer.close()
+                logger.info("Kafka consumer closed")
+            except Exception as e:
+                logger.warning(f"Error closing consumer: {e}")
+            finally:
+                self._consumer = None
+
+    @property
+    def topics(self) -> list[str]:
+        """Return the list of subscribed topics."""
+        return self._topics.copy()
+
+    @property
+    def group_id(self) -> str:
+        """Return the consumer group ID."""
+        return self._group_id
