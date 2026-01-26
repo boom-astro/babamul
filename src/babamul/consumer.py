@@ -93,9 +93,9 @@ class AlertConsumer:
         # Generate group_id if not provided
         self._group_id = self._config.group_id or f"{self._config.username}-client-1"
 
-        # Timeout in milliseconds for poll(), -1 means infinite
-        self._poll_timeout_ms = (
-            int(self._config.timeout * 1000) if self._config.timeout else -1
+        # Timeout in seconds for poll(), -1 means infinite
+        self._poll_timeout = (
+            int(self._config.timeout) if self._config.timeout else -1
         )
 
         # Whether to yield raw alerts or model instances
@@ -149,14 +149,9 @@ class AlertConsumer:
         """
         consumer = self._ensure_consumer()
 
-        # Calculate poll timeout in seconds (-1 means infinite wait)
-        poll_timeout: float = (
-            self._poll_timeout_ms / 1000.0 if self._poll_timeout_ms > 0 else -1.0
-        )
-
         while not self._closed:
             try:
-                msg = consumer.poll(timeout=poll_timeout)
+                msg = consumer.poll(timeout=self._poll_timeout)
 
                 if msg is None:
                     # Timeout reached
