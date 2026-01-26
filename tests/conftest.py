@@ -1,8 +1,8 @@
 """Pytest fixtures for babamul tests."""
 
-import pytest
-
 from typing import Any
+
+import pytest
 
 
 @pytest.fixture

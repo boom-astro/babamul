@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Basic usage example for babamul.
 
-This example demonstrates how to consume alerts from BOOM Kafka streams.
+This example demonstrates how to consume alerts from Babamul Kafka streams.
 
 Before running, set your credentials:
     export BABAMUL_KAFKA_USERNAME="your_username"
@@ -14,13 +14,13 @@ from babamul import AlertConsumer, ZtfCandidate, LsstCandidate
 
 
 def main() -> None:
-    """Consume and display alerts from BOOM."""
+    """Consume and display alerts from Babamul."""
     # Create consumer (credentials from environment or pass directly)
     consumer = AlertConsumer(
         # username="your_username",  # Or set BABAMUL_KAFKA_USERNAME env var
         # password="your_password",  # Or set BABAMUL_KAFKA_PASSWORD env var
         # server=BACKUP_KAFKA_SERVERS,  # Optional, defaults to MAIN_KAFKA_SERVER
-        topics=['babamul.ztf.lsst-match.hosted'],  # Example topic
+        topics=['babamul.ztf.lsst-match.hosted', 'babamul.lsst.ztf-match.hosted'],  # Example topic
         offset="earliest",  # Start from most recent alerts
         timeout=30.0,  # Wait up to 30 seconds for each message
     )
@@ -42,7 +42,7 @@ def main() -> None:
             print(f"  Photometry points: {len(alert.get_photometry())}")
 
             # Real bogus / reliability score if available
-            print(f"  Real/Bogus or Reliability score: {alert.drb}")
+            print(f"  Real/Bogus or Reliability score: {alert.drb:.2f}")
 
             # We can conveniently access the survey name
             print(f"  Survey: {alert.survey}")

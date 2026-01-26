@@ -1,7 +1,6 @@
-"""Configuration management for boom-alerts."""
+"""Configuration management for Babamul alerts."""
 
 import os
-
 from dataclasses import dataclass
 
 MAIN_KAFKA_SERVER = "kaboom.caltech.edu:9093" # Default BABAMUL Kafka server in Caltech
@@ -9,8 +8,8 @@ BACKUP_KAFKA_SERVERS = "babamul.umn.edu:9093" # Backup BABAMUL Kafka server in t
 
 
 @dataclass
-class BoomConfig:
-    """Configuration for connecting to BOOM Kafka streams."""
+class BabamulConfig:
+    """Configuration for connecting to Babamul Kafka streams."""
 
     username: str
     password: str
@@ -18,6 +17,7 @@ class BoomConfig:
     group_id: str | None = None
     offset: str = "latest"
     timeout: float | None = None
+    auto_commit: bool = True
 
     @classmethod
     def from_env(
@@ -28,29 +28,41 @@ class BoomConfig:
         group_id: str | None = None,
         offset: str = "latest",
         timeout: float | None = None,
-    ) -> "BoomConfig":
+        auto_commit: bool = True,
+    ) -> "BabamulConfig":
         """Create configuration from environment variables.
 
-        Environment variables:
-            BABAMUL_KAFKA_USERNAME: Kafka username
-            BABAMUL_KAFKA_PASSWORD: Kafka password
-            BOOM_SERVER: Kafka server address
+        Parameters
+        ----------
+        username : str | None
+            Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
+        password : str | None
+            Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
+        server : str | None
+            Kafka bootstrap server. Defaults to Babamul's server.
+            Can also be set via BABAMUL_SERVER env var.
+        group_id : str | None
+            Consumer group ID
+        offset : str
+            Starting offset ("latest" or "earliest")
+        timeout : float | None
+            Poll timeout in seconds
+        auto_commit : bool
+            Whether to auto-commit offsets
 
-        Args:
-            username: Override for BABAMUL_KAFKA_USERNAME
-            password: Override for BABAMUL_KAFKA_PASSWORD
-            server: Override for BOOM_SERVER
-            group_id: Consumer group ID
-            offset: Starting offset ("latest" or "earliest")
-            timeout: Poll timeout in seconds
+        Returns
+        ----------
+        BabamulConfig
+            Babamul configuration instance
 
-        Returns:
-            BoomConfig instance
+        Raises
+        ----------
+        ValueError
+            If required credentials are missing.
         """
         final_username = username or os.environ.get("BABAMUL_KAFKA_USERNAME")
         final_password = password or os.environ.get("BABAMUL_KAFKA_PASSWORD")
-        final_server = server or os.environ.get("BOOM_SERVER", MAIN_KAFKA_SERVER)
-
+        final_server = server or os.environ.get("BABAMUL_SERVER", MAIN_KAFKA_SERVER)
         if not final_username:
             raise ValueError(
                 "Username is required. Provide it directly or set BABAMUL_KAFKA_USERNAME environment variable."
@@ -67,4 +79,5 @@ class BoomConfig:
             group_id=group_id,
             offset=offset,
             timeout=timeout,
+            auto_commit=auto_commit,
         )
