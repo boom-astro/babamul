@@ -5,6 +5,7 @@ from typing import Any
 
 import fastavro
 
+
 def deserialize_alert(data: bytes) -> dict[str, Any]:
     """Deserialize an Avro-encoded Babamul alert.
 

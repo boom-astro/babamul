@@ -1,7 +1,6 @@
 """Configuration management for Babamul alerts."""
 
 import os
-
 from dataclasses import dataclass
 
 MAIN_KAFKA_SERVER = "kaboom.caltech.edu:9093" # Default BABAMUL Kafka server in Caltech
@@ -50,7 +49,7 @@ class BabamulConfig:
             Poll timeout in seconds
         auto_commit : bool
             Whether to auto-commit offsets
-        
+
         Returns
         ----------
         BabamulConfig

@@ -1,35 +1,36 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import gzip
 import io
+import logging
+from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
 from astropy.io import fits
 from astropy.visualization import (
+    AsymmetricPercentileInterval,
     ImageNormalize,
-    LogStretch,
     LinearStretch,
-    AsymmetricPercentileInterval
+    LogStretch,
 )
 from scipy.ndimage import rotate
-from typing import Dict, Any, Optional, List
-import logging
 
 logger = logging.getLogger(__name__)
 
 CUTOUT_TYPES = ["Science", "Template", "Difference"]
 
 def plot_cutouts(
-    alert: Dict[str, Any],
+    alert: dict[str, Any],
     survey: str,
     use_rotation: bool = False,
-    axes: Optional[List[plt.Axes]] = None,
+    axes: list[plt.Axes] | None = None,
     show: bool = True,
     orientation: str = 'horizontal',
-    figsize: Optional[tuple] = None,
-    title: Optional[str] = None,
-) -> List[plt.Axes]:
+    figsize: tuple | None = None,
+    title: str | None = None,
+) -> list[plt.Axes]:
     """
     Plot all three cutout images (Science, Template, Difference) for a ZTF alert.
-    
+
     Parameters
     ----------
     alert : dict
@@ -48,17 +49,17 @@ def plot_cutouts(
         Figure size. If None, uses defaults based on orientation.
     title : str, optional
         Overall figure title. If None, uses objectId.
-    
+
     Returns
     -------
     list of matplotlib.axes.Axes
         List of the three axes objects.
-    
+
     Examples
     --------
     >>> # Horizontal layout
     >>> plot_cutouts(alert)
-    >>> 
+    >>>
     >>> # Vertical layout with custom size
     >>> plot_cutouts(alert, orientation='vertical', figsize=(4, 10))
     """
@@ -66,18 +67,18 @@ def plot_cutouts(
     if axes is None:
         if figsize is None:
             figsize = (12, 4) if orientation == 'horizontal' else (4, 10)
-        
+
         if orientation == 'horizontal':
             fig, axes = plt.subplots(1, 3, figsize=figsize)
         else:
             fig, axes = plt.subplots(3, 1, figsize=figsize)
-    
-    for ax, ctype in zip(axes, CUTOUT_TYPES):
+
+    for ax, ctype in zip(axes, CUTOUT_TYPES, strict=True):
         cutout_key = f'cutout{ctype}'
 
         # Handle both dict and classes
         if isinstance(alert, dict):
-            cutout_data = alert.get(cutout_key, None)
+            cutout_data = alert.get(cutout_key)
         else:
             cutout_data = getattr(alert, cutout_key, None)
         if cutout_data is None or cutout_data == b'':
@@ -89,10 +90,10 @@ def plot_cutouts(
         # handle both compressed and uncompressed data
         rotpa = None
         try:
-            with gzip.open(io.BytesIO(cutout_data), "rb") as f:
-                with fits.open(io.BytesIO(f.read()), ignore_missing_simple=True) as hdu:
-                    rotpa = hdu[0].header.get('ROTPA', None)
-                    data = hdu[0].data
+            with gzip.open(io.BytesIO(cutout_data), "rb") as f, \
+                 fits.open(io.BytesIO(f.read()), ignore_missing_simple=True) as hdu:
+                rotpa = hdu[0].header.get('ROTPA', None)
+                data = hdu[0].data
         except OSError:
             with fits.open(io.BytesIO(cutout_data), ignore_missing_simple=True) as hdu:
                 rotpa = hdu[0].header.get('ROTPA', None)
@@ -108,7 +109,7 @@ def plot_cutouts(
             img = np.nan_to_num(img, nan=median)
 
         # Normalize
-        stretch = LinearStretch() if type == "Difference" else LogStretch()
+        stretch = LinearStretch() if ctype == "Difference" else LogStretch()
         norm = ImageNormalize(img, stretch=stretch)
         img_norm = norm(img)
 
@@ -135,12 +136,12 @@ def plot_cutouts(
         ax.imshow(img_norm, cmap="bone", origin="lower", vmin=vmin, vmax=vmax)
         ax.set_title(ctype, fontsize=10)
         ax.axis('off')
-    
+
     if show:
         if title is None:
             title = f"Thumbnails for {alert['objectId']}"
         plt.suptitle(title, fontsize=12, fontweight='bold')
         plt.tight_layout()
         plt.show()
-    
+
     return axes

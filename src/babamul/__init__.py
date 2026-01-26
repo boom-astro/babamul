@@ -10,11 +10,11 @@ from .exceptions import (
 )
 from .models import (
     BabamulZtfAlert,
-    ZtfPhotometry,
-    ZtfCandidate,
+    EnrichedLsstAlert,
     LsstCandidate,
     LsstPhotometry,
-    EnrichedLsstAlert,
+    ZtfCandidate,
+    ZtfPhotometry,
 )
 
 __version__ = "0.1.0"

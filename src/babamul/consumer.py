@@ -8,7 +8,7 @@ from confluent_kafka import Consumer, KafkaError, KafkaException
 from .avro_utils import deserialize_alert
 from .config import MAIN_KAFKA_SERVER, BabamulConfig
 from .exceptions import AuthenticationError, ConnectionError, DeserializationError
-from .models import BabamulZtfAlert, BabamulLsstAlert
+from .models import BabamulLsstAlert, BabamulZtfAlert
 
 logger = logging.getLogger(__name__)
 
@@ -193,12 +193,6 @@ class AlertConsumer:
                         yield alert_dict
                         continue
 
-                    # DEBUG, print the keys of the alert_dict
-                    print(f"Alert keys: {list(alert_dict.keys())}")
-                    # print the value of cross_matches if present
-                    if 'cross_matches' in alert_dict:
-                        print(f"cross_matches: {alert_dict['cross_matches']}")
-                        
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
                     if msg.topic().startswith("babamul.ztf"):
                         alert = BabamulZtfAlert.model_validate(alert_dict)
