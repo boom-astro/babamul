@@ -95,7 +95,7 @@ class AlertConsumer:
 
         # Timeout in seconds for poll(), -1 means infinite
         self._poll_timeout = (
-            int(self._config.timeout) if self._config.timeout else -1
+            self._config.timeout if self._config.timeout is not None else -1
         )
 
         # Whether to yield raw alerts or model instances
