@@ -3,7 +3,7 @@
 from .consumer import AlertConsumer
 from .exceptions import (
     AuthenticationError,
-    BoomError,
+    BabamulError,
     ConfigurationError,
     ConnectionError,
     DeserializationError,
@@ -30,7 +30,7 @@ __all__ = [
     "LsstPhotometry",
     "EnrichedLsstAlert",
     # Exceptions
-    "BoomError",
+    "BabamulError",
     "AuthenticationError",
     "ConnectionError",
     "DeserializationError",

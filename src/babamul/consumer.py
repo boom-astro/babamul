@@ -1,4 +1,4 @@
-"""Kafka consumer for BOOM alerts."""
+"""Kafka consumer for Babamul alerts."""
 
 import logging
 from collections.abc import Iterator
@@ -6,7 +6,7 @@ from collections.abc import Iterator
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
 from .avro_utils import deserialize_alert
-from .config import MAIN_KAFKA_SERVER, BoomConfig
+from .config import MAIN_KAFKA_SERVER, BabamulConfig
 from .exceptions import AuthenticationError, ConnectionError, DeserializationError
 from .models import BabamulZtfAlert, BabamulLsstAlert
 
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class AlertConsumer:
-    """Consumer for BOOM Kafka alert streams.
+    """Consumer for Babamul Kafka alert streams.
 
     A simple iterator-based interface for consuming astronomical transient
-    alerts from BOOM's Kafka topics.
+    alerts from Babamul's Kafka topics.
     """
 
     def __init__(
@@ -29,19 +29,23 @@ class AlertConsumer:
         group_id: str | None = None,
         offset: str = "latest",
         timeout: float | None = None,
+        auto_commit: bool = True,
+        as_raw: bool = False,
     ) -> None:
         """Initialize the alert consumer.
 
         Args:
-            username: BOOM Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
-            password: BOOM Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
+            username: Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
+            password: Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
             topics: Kafka topic(s) to subscribe to. Can be a string or list of strings.
                    Example: "babamul.ztf.*" or ["babamul.ztf.*", "babamul.lsst.*"]
-            server: Kafka bootstrap server. Defaults to BOOM's server.
-                    Can also be set via BOOM_SERVER env var.
+            server: Kafka bootstrap server. Defaults to Babamul's server.
+                    Can also be set via BABAMUL_SERVER env var.
             group_id: Kafka consumer group ID. Auto-generated if not provided.
             offset: Where to start consuming: "latest" (default) or "earliest".
             timeout: Timeout in seconds between messages. None means wait forever.
+            auto_commit: Whether to auto-commit offsets.
+            as_raw: If True, yields raw alert dictionaries instead of model instances.
 
         Raises:
             ValueError: If required credentials are missing.
@@ -49,13 +53,14 @@ class AlertConsumer:
             AuthenticationError: If authentication fails.
         """
         # Load configuration (supports environment variables)
-        self._config = BoomConfig.from_env(
+        self._config = BabamulConfig.from_env(
             username=username,
             password=password,
             server=server,
             group_id=group_id,
             offset=offset,
             timeout=timeout,
+            auto_commit=auto_commit
         )
 
         # Normalize topics to a list
@@ -68,12 +73,15 @@ class AlertConsumer:
             raise ValueError("At least one topic must be specified")
 
         # Generate group_id if not provided
-        self._group_id = self._config.group_id or f"{self._config.username}-client"
+        self._group_id = self._config.group_id or f"{self._config.username}-client-1"
 
         # Timeout in milliseconds for poll(), -1 means infinite
         self._poll_timeout_ms = (
             int(self._config.timeout * 1000) if self._config.timeout else -1
         )
+
+        # Whether to yield raw alerts or model instances
+        self._as_raw = as_raw
 
         # Create Kafka consumer
         self._consumer: Consumer | None = None
@@ -85,7 +93,7 @@ class AlertConsumer:
             "bootstrap.servers": self._config.server,
             "group.id": self._group_id,
             "auto.offset.reset": self._config.offset,
-            "enable.auto.commit": True,
+            "enable.auto.commit": self._config.auto_commit,
             "security.protocol": "SASL_PLAINTEXT",
             "sasl.mechanism": "SCRAM-SHA-512",
             "sasl.username": self._config.username,
@@ -112,11 +120,11 @@ class AlertConsumer:
             self._consumer = self._create_consumer()
         return self._consumer
 
-    def __iter__(self) -> Iterator[BabamulZtfAlert | BabamulLsstAlert]:
+    def __iter__(self) -> Iterator[BabamulZtfAlert | BabamulLsstAlert | dict]:
         """Iterate over alerts from the subscribed topics.
 
         Yields:
-            BabamulZtfAlert | BabamulLsstAlert objects as they are received from Kafka.
+            BabamulZtfAlert | BabamulLsstAlert | dict objects as they are received from Kafka (dict if as_raw=True).
         Raises:
             ConnectionError: If connection to Kafka is lost.
             DeserializationError: If alert deserialization fails.
@@ -162,6 +170,10 @@ class AlertConsumer:
                         continue
 
                     alert_dict = deserialize_alert(data)
+
+                    if self._as_raw:
+                        yield alert_dict
+                        continue
                         
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
                     if msg.topic().startswith("babamul.ztf"):

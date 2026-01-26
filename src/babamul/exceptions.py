@@ -1,31 +1,31 @@
-"""Custom exceptions for boom-alerts."""
+"""Custom exceptions for Babamul alerts."""
 
 
-class BoomError(Exception):
-    """Base exception for all boom-alerts errors."""
+class BabamulError(Exception):
+    """Base exception for all Babamul alerts errors."""
 
     pass
 
 
-class AuthenticationError(BoomError):
+class AuthenticationError(BabamulError):
     """Raised when authentication to Kafka fails."""
 
     pass
 
 
-class ConnectionError(BoomError):
+class ConnectionError(BabamulError):
     """Raised when connection to Kafka server fails."""
 
     pass
 
 
-class DeserializationError(BoomError):
+class DeserializationError(BabamulError):
     """Raised when Avro deserialization fails."""
 
     pass
 
 
-class ConfigurationError(BoomError):
+class ConfigurationError(BabamulError):
     """Raised when configuration is invalid."""
 
     pass

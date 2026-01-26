@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Python client for consuming ZTF/LSST alerts from BABAMUL Kafka streams"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 authors = [
     { name = "BOOM Team" }
 ]
@@ -31,15 +31,11 @@ dependencies = [
     "cramjam>=2.8.0",
     "fastavro>=1.9.0",
     "pydantic>=2.0.0",
+    "matplotlib>=3.8.0",
+    "scipy>=1.17.0",
 ]
 
 [project.optional-dependencies]
-pandas = ["pandas>=2.0.0"]
-matplotlib = ["matplotlib>=3.8.0"]
-all = [
-    "pandas>=2.0.0",
-    "matplotlib>=3.8.0",
-]
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",

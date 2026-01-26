@@ -1,6 +1,6 @@
 # babamul
 
-Python client for consuming ZTF/LSST astronomical transient alerts from BOOM Kafka streams.
+Python client for consuming ZTF/LSST astronomical transient alerts from Babamul Kafka streams.
 
 ## Installation
 
@@ -50,7 +50,7 @@ consumer = AlertConsumer(
 ```bash
 export BABAMUL_KAFKA_USERNAME="your_username"
 export BABAMUL_KAFKA_PASSWORD="your_password"
-export BOOM_SERVER="kaboom.caltech.edu:9093"  # Optional, defaults to kaboom.caltech.edu:9093
+export BABAMUL_SERVER="kaboom.caltech.edu:9093"  # Optional, defaults to kaboom.caltech.edu:9093
 ```
 Then in Python:
 ```python
@@ -141,7 +141,7 @@ finally:
 
 ## Available Topics
 
-BOOM provides several topic categories based on survey and classification:
+Babamul provides several topic categories based on survey and classification:
 
 ### LSST Topics
 
