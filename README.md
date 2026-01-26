@@ -8,14 +8,6 @@ Python client for consuming ZTF/LSST astronomical transient alerts from Babamul 
 pip install babamul
 ```
 
-With optional dependencies:
-
-```bash
-pip install babamul[pandas]     # DataFrame support
-pip install babamul[matplotlib] # Cutout visualization
-pip install babamul[all]        # All optional dependencies
-```
-
 ## Quick Start
 
 ```python
@@ -93,9 +85,6 @@ for alert in consumer:
 ```
 
 ### Cutouts
-```bash
-    pip install babamul[ma
-```
 ```python
 from babamul import AlertConsumer
 
