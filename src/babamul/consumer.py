@@ -7,7 +7,7 @@ from confluent_kafka import Consumer, KafkaError, KafkaException
 
 from .avro_utils import deserialize_alert
 from .config import MAIN_KAFKA_SERVER, BabamulConfig
-from .exceptions import AuthenticationError, ConnectionError, DeserializationError
+from .exceptions import AuthenticationError, BabamulConnectionError, DeserializationError
 from .models import BabamulLsstAlert, BabamulZtfAlert
 
 logger = logging.getLogger(__name__)
@@ -65,7 +65,7 @@ class AlertConsumer:
         -------
         ValueError
             If required credentials are missing.
-        ConnectionError
+        BabamulConnectionError
             If connection to Kafka fails.
         AuthenticationError
             If authentication fails.
@@ -130,7 +130,7 @@ class AlertConsumer:
             error_str = str(e)
             if "authentication" in error_str.lower() or "sasl" in error_str.lower():
                 raise AuthenticationError(f"Authentication failed: {e}") from e
-            raise ConnectionError(f"Failed to connect to Kafka: {e}") from e
+            raise BabamulConnectionError(f"Failed to connect to Kafka: {e}") from e
 
     def _ensure_consumer(self) -> Consumer:
         """Ensure the consumer is created and return it."""
@@ -144,7 +144,7 @@ class AlertConsumer:
         Yields:
             BabamulZtfAlert | BabamulLsstAlert | dict objects as they are received from Kafka (dict if as_raw=True).
         Raises:
-            ConnectionError: If connection to Kafka is lost.
+            BabamulConnectionError: If connection to Kafka is lost.
             DeserializationError: If alert deserialization fails.
         """
         consumer = self._ensure_consumer()
@@ -176,7 +176,7 @@ class AlertConsumer:
                         logger.debug(f"Reached end of partition {msg.partition()}")
                         continue
                     elif all_brokers_down is not None and error.code() == all_brokers_down:
-                        raise ConnectionError("All Kafka brokers are down")
+                        raise BabamulConnectionError("All Kafka brokers are down")
                     else:
                         logger.warning(f"Kafka error: {error}")
                         continue

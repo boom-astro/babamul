@@ -113,7 +113,7 @@ with AlertConsumer(username="user", password="pass", topics=["babamul.ztf.lsst-m
 ## Error Handling
 
 ```python
-from babamul import AlertConsumer, AuthenticationError, ConnectionError
+from babamul import AlertConsumer, AuthenticationError, BabamulConnectionError
 
 consumer = None
 try:
@@ -123,7 +123,7 @@ try:
         pass
 except AuthenticationError:
     print("Invalid credentials")
-except ConnectionError:
+except BabamulConnectionError:
     print("Cannot connect to Kafka server")
 finally:
     if consumer:

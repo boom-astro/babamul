@@ -5,7 +5,7 @@ from .exceptions import (
     AuthenticationError,
     BabamulError,
     ConfigurationError,
-    ConnectionError,
+    BabamulConnectionError,
     DeserializationError,
 )
 from .models import (
@@ -32,7 +32,7 @@ __all__ = [
     # Exceptions
     "BabamulError",
     "AuthenticationError",
-    "ConnectionError",
+    "BabamulConnectionError",
     "DeserializationError",
     "ConfigurationError",
     # Version
