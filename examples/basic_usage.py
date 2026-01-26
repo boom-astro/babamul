@@ -21,7 +21,7 @@ def main() -> None:
         # password="your_password",  # Or set BABAMUL_KAFKA_PASSWORD env var
         # server=BACKUP_KAFKA_SERVERS,  # Optional, defaults to MAIN_KAFKA_SERVER
         topics=['babamul.ztf.lsst-match.hosted', 'babamul.lsst.ztf-match.hosted'],  # Example topic
-        offset="earliest",  # Start from most recent alerts
+        offset="earliest",  # Start from the earliest available message
         timeout=30.0,  # Wait up to 30 seconds for each message
     )
 
