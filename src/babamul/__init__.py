@@ -9,10 +9,10 @@ from .exceptions import (
     DeserializationError,
 )
 from .models import (
-    BabamulZtfAlert,
-    EnrichedLsstAlert,
+    BabamulLsstAlert,
     LsstCandidate,
     LsstPhotometry,
+    BabamulZtfAlert,
     ZtfCandidate,
     ZtfPhotometry,
 )
@@ -28,7 +28,7 @@ __all__ = [
     "ZtfCandidate",
     "LsstCandidate",
     "LsstPhotometry",
-    "EnrichedLsstAlert",
+    "BabamulLsstAlert",
     # Exceptions
     "BabamulError",
     "AuthenticationError",
