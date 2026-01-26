@@ -72,7 +72,23 @@ class BabamulZtfAlert(EnrichedZtfAlert):
     ) -> List[plt.Axes]:
         """Display the science, template, and difference cutouts for this alert.
 
-        Requires matplotlib to be installed: pip install babamul[matplotlib]
+        Parameters
+        ----------
+        orientation : str, default='horizontal'
+            Layout orientation: 'horizontal' or 'vertical'. (overwritten if axes is not None)
+        axes : list of matplotlib.axes.Axes, optional
+            List of 3 axes to plot on. If None, creates new figure.
+        show : bool, default=True
+            Whether to call plt.show() after plotting.
+        figsize : tuple, optional
+            Figure size. If None, uses defaults based on orientation.
+        title : str, optional
+            Overall figure title. If None, uses objectId.
+
+        Returns
+        -------
+        list of matplotlib.axes.Axes
+            List of the three axes objects (science, template, difference).
         """        
         return plot_cutouts(self, self.survey, False, axes, show, orientation, figsize, title or self.objectId)
     
@@ -82,7 +98,10 @@ class BabamulZtfAlert(EnrichedZtfAlert):
     ) -> None:
         """Display the cutouts in a new matplotlib figure.
 
-        Requires matplotlib to be installed: pip install babamul[matplotlib]
+        Parameters
+        ----------
+        orientation : str, default='horizontal'
+            Layout orientation: 'horizontal' or 'vertical'.
         """        
         self.plot_cutouts(orientation=orientation, show=True)
 
@@ -140,9 +159,27 @@ class BabamulLsstAlert(EnrichedLsstAlert):
         title: Optional[str] = None
     ) -> List[plt.Axes]:
         """Display the science, template, and difference cutouts for this alert.
+        
+        Parameters
+        ----------
+        orientation : str, default='horizontal'
+            Layout orientation: 'horizontal' or 'vertical'. (overwritten if axes is not None)
+        use_rotation : bool, default=True
+            Whether to apply rotation based on FITS header (if available).
+        axes : list of matplotlib.axes.Axes, optional
+            List of 3 axes to plot on. If None, creates new figure.
+        show : bool, default=True
+            Whether to call plt.show() after plotting.
+        figsize : tuple, optional
+            Figure size. If None, uses defaults based on orientation.
+        title : str, optional
+            Overall figure title. If None, uses objectId.
 
-        Requires matplotlib to be installed: pip install babamul[matplotlib]
-        """        
+        Returns
+        -------
+        list of matplotlib.axes.Axes
+            List of the three axes objects (science, template, difference).
+        """
         return plot_cutouts(self, self.survey, use_rotation, axes, show, orientation, figsize, title or self.objectId)
     
     def show_cutouts(
@@ -151,8 +188,13 @@ class BabamulLsstAlert(EnrichedLsstAlert):
         use_rotation: bool = True,
     ) -> None:
         """Display the cutouts in a new matplotlib figure.
-
-        Requires matplotlib to be installed: pip install babamul[matplotlib]
+        
+        Parameters
+        ----------
+        orientation : str, default='horizontal'
+            Layout orientation: 'horizontal' or 'vertical'.
+        use_rotation : bool, default=True
+            Whether to apply rotation based on FITS header (if available).
         """        
         self.plot_cutouts(use_rotation=use_rotation, orientation=orientation, show=True)
 

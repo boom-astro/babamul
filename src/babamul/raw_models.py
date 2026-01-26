@@ -2,7 +2,7 @@
 from enum import Enum
 from typing import List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 
 
 class Band(str, Enum):
@@ -163,7 +163,7 @@ class LsstPhotometry(BaseModel):
 
 
 class LsstMatch(BaseModel):
-    object_id: str
+    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
     ra: float
     dec: float
     prv_candidates: List[LsstPhotometry]
@@ -175,17 +175,17 @@ class ZtfSurveyMatches(BaseModel):
 
 
 class EnrichedZtfAlert(BaseModel):
-    candid: int
-    objectId: str
+    candid: int = Field(..., alias=AliasChoices('candid', '_id'))
+    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
     candidate: ZtfCandidate
     prv_candidates: List[ZtfPhotometry]
     prv_nondetections: List[ZtfPhotometry]
     fp_hists: List[ZtfPhotometry]
     properties: ZtfAlertProperties
     survey_matches: Optional[ZtfSurveyMatches]
-    cutoutScience: Optional[bytes]
-    cutoutTemplate: Optional[bytes]
-    cutoutDifference: Optional[bytes]
+    cutoutScience: Optional[bytes] = Field(None, alias=AliasChoices('cutoutScience', 'cutout_science'))
+    cutoutTemplate: Optional[bytes] = Field(None, alias=AliasChoices('cutoutTemplate', 'cutout_template'))
+    cutoutDifference: Optional[bytes] = Field(None, alias=AliasChoices('cutoutDifference', 'cutout_difference'))
 
 
 class LsstCandidate(BaseModel):
@@ -261,7 +261,7 @@ class LsstCandidate(BaseModel):
     pixelFlags_injected_template: Optional[bool]
     pixelFlags_injected_templateCenter: Optional[bool]
     glint_trail: Optional[bool]
-    objectId: str
+    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
     jd: float
     magpsf: float
     sigmapsf: float
@@ -283,7 +283,7 @@ class LsstAlertProperties(BaseModel):
 
 
 class ZtfMatch(BaseModel):
-    object_id: str
+    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
     ra: float
     dec: float
     prv_candidates: List[ZtfPhotometry]
@@ -296,13 +296,13 @@ class LsstSurveyMatches(BaseModel):
 
 
 class EnrichedLsstAlert(BaseModel):
-    candid: int
-    objectId: str
+    candid: int = Field(..., alias=AliasChoices('candid', '_id'))
+    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
     candidate: LsstCandidate
     prv_candidates: List[LsstPhotometry]
     fp_hists: List[LsstPhotometry]
     properties: LsstAlertProperties
-    cutoutScience: Optional[bytes]
-    cutoutTemplate: Optional[bytes]
-    cutoutDifference: Optional[bytes]
+    cutoutScience: Optional[bytes] = Field(None, alias=AliasChoices('cutoutScience', 'cutout_science'))
+    cutoutTemplate: Optional[bytes] = Field(None, alias=AliasChoices('cutoutTemplate', 'cutout_template'))
+    cutoutDifference: Optional[bytes] = Field(None, alias=AliasChoices('cutoutDifference', 'cutout_difference'))
     survey_matches: Optional[LsstSurveyMatches]

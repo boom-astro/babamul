@@ -18,6 +18,7 @@ class BabamulConfig:
     group_id: str | None = None
     offset: str = "latest"
     timeout: float | None = None
+    auto_commit: bool = True
 
     @classmethod
     def from_env(
@@ -28,24 +29,37 @@ class BabamulConfig:
         group_id: str | None = None,
         offset: str = "latest",
         timeout: float | None = None,
+        auto_commit: bool = True,
     ) -> "BabamulConfig":
         """Create configuration from environment variables.
 
-        Environment variables:
-            BABAMUL_KAFKA_USERNAME: Kafka username
-            BABAMUL_KAFKA_PASSWORD: Kafka password
-            BABAMUL_SERVER: Kafka server address
+        Parameters
+        ----------
+        username : str | None
+            Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
+        password : str | None
+            Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
+        server : str | None
+            Kafka bootstrap server. Defaults to Babamul's server.
+            Can also be set via BABAMUL_SERVER env var.
+        group_id : str | None
+            Consumer group ID
+        offset : str
+            Starting offset ("latest" or "earliest")
+        timeout : float | None
+            Poll timeout in seconds
+        auto_commit : bool
+            Whether to auto-commit offsets
+        
+        Returns
+        ----------
+        BabamulConfig
+            Babamul configuration instance
 
-        Args:
-            username: Override for BABAMUL_KAFKA_USERNAME
-            password: Override for BABAMUL_KAFKA_PASSWORD
-            server: Override for BABAMUL_SERVER
-            group_id: Consumer group ID
-            offset: Starting offset ("latest" or "earliest")
-            timeout: Poll timeout in seconds
-
-        Returns:
-            BabamulConfig instance
+        Raises
+        ----------
+        ValueError
+            If required credentials are missing.
         """
         final_username = username or os.environ.get("BABAMUL_KAFKA_USERNAME")
         final_password = password or os.environ.get("BABAMUL_KAFKA_PASSWORD")
@@ -66,4 +80,5 @@ class BabamulConfig:
             group_id=group_id,
             offset=offset,
             timeout=timeout,
+            auto_commit=auto_commit,
         )

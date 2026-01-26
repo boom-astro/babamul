@@ -8,14 +8,20 @@ import fastavro
 def deserialize_alert(data: bytes) -> dict[str, Any]:
     """Deserialize an Avro-encoded Babamul alert.
 
-    Args:
-        data: Raw Avro bytes from Kafka message
+    Parameters
+    ----------
+    data : bytes
+        The Avro-encoded alert data.
 
-    Returns:
-        Deserialized alert as a dictionary
+    Returns
+    -------
+    dict[str, Any]
+        The deserialized alert as a dictionary.
 
-    Raises:
-        DeserializationError: If deserialization fails
+    Raises
+    ------
+    fastavro._reader.SchemaResolutionError
+        If the data cannot be deserialized due to schema mismatch.
     """
     reader = fastavro.reader(io.BytesIO(data))
     result: dict[str, Any] = next(reader)

@@ -33,7 +33,9 @@ def plot_cutouts(
     Parameters
     ----------
     alert : dict
-        Parsed ZTF alert packet.
+        The alert dictionary or model instance containing cutout data.
+    survey : str
+        The survey name, e.g., "ZTF" or "LSST".
     use_rotation : bool, default=False
         Whether to apply rotation based on FITS header (if available).
     axes : list of matplotlib.axes.Axes, optional

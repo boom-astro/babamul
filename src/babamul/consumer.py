@@ -22,9 +22,9 @@ class AlertConsumer:
 
     def __init__(
         self,
+        topics: str | list[str] = "",
         username: str | None = None,
         password: str | None = None,
-        topics: str | list[str] = "",
         server: str = MAIN_KAFKA_SERVER,
         group_id: str | None = None,
         offset: str = "latest",
@@ -34,23 +34,41 @@ class AlertConsumer:
     ) -> None:
         """Initialize the alert consumer.
 
-        Args:
-            username: Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
-            password: Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
-            topics: Kafka topic(s) to subscribe to. Can be a string or list of strings.
-                   Example: "babamul.ztf.*" or ["babamul.ztf.*", "babamul.lsst.*"]
-            server: Kafka bootstrap server. Defaults to Babamul's server.
-                    Can also be set via BABAMUL_SERVER env var.
-            group_id: Kafka consumer group ID. Auto-generated if not provided.
-            offset: Where to start consuming: "latest" (default) or "earliest".
-            timeout: Timeout in seconds between messages. None means wait forever.
-            auto_commit: Whether to auto-commit offsets.
-            as_raw: If True, yields raw alert dictionaries instead of model instances.
+        Parameters
+        ----------
+        topics : str | list[str]
+            Kafka topic(s) to subscribe to. Can be a string or list of strings.
+            Example: "babamul.ztf.*" or ["babamul.ztf.*", "babamul.lsst.*"]
+        username : str | None
+            Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
+        password : str | None
+            Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
+        server : str
+            Kafka bootstrap server. Defaults to Babamul's server.
+            Can also be set via BABAMUL_SERVER env var.
+        group_id : str | None
+            Kafka consumer group ID. Auto-generated if not provided.
+        offset : str
+            Where to start consuming: "latest" (default) or "earliest".
+        timeout : float | None
+            Timeout in seconds between messages. None means wait forever.
+        auto_commit : bool
+            Whether to auto-commit offsets.
+        as_raw : bool
+            If True, yields raw alert dictionaries instead of model instances.
 
-        Raises:
-            ValueError: If required credentials are missing.
-            ConnectionError: If connection to Kafka fails.
-            AuthenticationError: If authentication fails.
+        Returns
+        -------
+        None
+
+        Raises
+        -------
+        ValueError
+            If required credentials are missing.
+        ConnectionError
+            If connection to Kafka fails.
+        AuthenticationError
+            If authentication fails.
         """
         # Load configuration (supports environment variables)
         self._config = BabamulConfig.from_env(
@@ -174,6 +192,12 @@ class AlertConsumer:
                     if self._as_raw:
                         yield alert_dict
                         continue
+
+                    # DEBUG, print the keys of the alert_dict
+                    print(f"Alert keys: {list(alert_dict.keys())}")
+                    # print the value of cross_matches if present
+                    if 'cross_matches' in alert_dict:
+                        print(f"cross_matches: {alert_dict['cross_matches']}")
                         
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
                     if msg.topic().startswith("babamul.ztf"):
