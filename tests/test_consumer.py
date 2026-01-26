@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from babamul import AlertConsumer
+from babamul.models import BabamulLsstAlert, BabamulZtfAlert
 
 
 class TestAlertConsumerInit:
@@ -108,10 +109,12 @@ class TestAlertConsumerIteration:
         mock_msg1 = MagicMock()
         mock_msg1.error.return_value = None
         mock_msg1.value.return_value = b"fake_avro_data"
+        mock_msg1.topic.return_value = "babamul.ztf.lsst-match.hosted"
 
         mock_msg2 = MagicMock()
         mock_msg2.error.return_value = None
         mock_msg2.value.return_value = b"fake_avro_data"
+        mock_msg2.topic.return_value = "babamul.ztf.lsst-match.hosted"
 
         mock_consumer.poll.side_effect = [mock_msg1, mock_msg2, None]
         mock_deserialize.return_value = sample_ztf_alert_dict
@@ -119,7 +122,7 @@ class TestAlertConsumerIteration:
         consumer = AlertConsumer(
             username="user",
             password="pass",
-            topics=["test.topic"],
+            topics=["babamul.ztf.lsst-match.hosted"],
             timeout=1.0,
         )
 
@@ -143,6 +146,7 @@ class TestAlertConsumerIteration:
         mock_msg_valid = MagicMock()
         mock_msg_valid.error.return_value = None
         mock_msg_valid.value.return_value = b"fake_avro_data"
+        mock_msg_valid.topic.return_value = "babamul.ztf.lsst-match.hosted"
 
         mock_msg_null = MagicMock()
         mock_msg_null.error.return_value = None
@@ -154,7 +158,7 @@ class TestAlertConsumerIteration:
         consumer = AlertConsumer(
             username="user",
             password="pass",
-            topics=["test.topic"],
+            topics=["babamul.ztf.lsst-match.hosted"],
             timeout=0.1,
         )
 
@@ -176,13 +180,14 @@ class TestAlertConsumerIteration:
         mock_msg = MagicMock()
         mock_msg.error.return_value = None
         mock_msg.value.return_value = b"fake_avro_data"
+        mock_msg.topic.return_value = "babamul.ztf.lsst-match.hosted"
         mock_consumer.poll.return_value = mock_msg
         mock_deserialize.return_value = sample_ztf_alert_dict
 
         consumer = AlertConsumer(
             username="user",
             password="pass",
-            topics=["test.topic"],
+            topics=["babamul.ztf.lsst-match.hosted"],
         )
 
         count = 0
@@ -192,3 +197,66 @@ class TestAlertConsumerIteration:
                 consumer.close()
 
         assert count == 2
+
+    @patch("babamul.consumer.deserialize_alert")
+    @patch("babamul.consumer.Consumer")
+    def test_iteration_routes_ztf_topic_to_ztf_model(
+        self,
+        mock_consumer_class: MagicMock,
+        mock_deserialize: MagicMock,
+        sample_ztf_alert_dict: dict[str, Any],
+    ) -> None:
+        """Test that messages from babamul.ztf topics produce BabamulZtfAlert."""
+        mock_consumer = MagicMock()
+        mock_consumer_class.return_value = mock_consumer
+
+        mock_msg = MagicMock()
+        mock_msg.error.return_value = None
+        mock_msg.value.return_value = b"fake_avro_data"
+        mock_msg.topic.return_value = "babamul.ztf.no-lsst-match.hostless"
+
+        mock_consumer.poll.side_effect = [mock_msg, None]
+        mock_deserialize.return_value = sample_ztf_alert_dict
+
+        consumer = AlertConsumer(
+            username="user",
+            password="pass",
+            topics=["babamul.ztf.no-lsst-match.hostless"],
+            timeout=1.0,
+        )
+
+        alerts = list(consumer)
+        assert len(alerts) == 1
+        assert isinstance(alerts[0], BabamulZtfAlert)
+
+    @patch("babamul.consumer.deserialize_alert")
+    @patch("babamul.consumer.Consumer")
+    def test_iteration_routes_lsst_topic_to_lsst_model(
+        self,
+        mock_consumer_class: MagicMock,
+        mock_deserialize: MagicMock,
+        sample_lsst_alert_dict: dict[str, Any],
+    ) -> None:
+        """Test that messages from babamul.lsst topics produce BabamulLsstAlert."""
+        mock_consumer = MagicMock()
+        mock_consumer_class.return_value = mock_consumer
+
+        mock_msg = MagicMock()
+        mock_msg.error.return_value = None
+        mock_msg.value.return_value = b"fake_avro_data"
+        mock_msg.topic.return_value = "babamul.lsst.ztf-match.hosted"
+
+        mock_consumer.poll.side_effect = [mock_msg, None]
+        mock_deserialize.return_value = sample_lsst_alert_dict
+
+        consumer = AlertConsumer(
+            username="user",
+            password="pass",
+            topics=["babamul.lsst.ztf-match.hosted"],
+            timeout=1.0,
+        )
+
+        alerts = list(consumer)
+        assert len(alerts) == 1
+        assert isinstance(alerts[0], BabamulLsstAlert)
+        assert alerts[0].objectId == "LSST24aabcdef"
