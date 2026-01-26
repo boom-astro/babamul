@@ -29,8 +29,7 @@ from babamul import AlertConsumer
 consumer = AlertConsumer(
     username="your_username",
     password="your_password",
-    topics=["babamul.ztf.lsst-match.hosted"],  # Topic to subscribe to
-    # topic=["babamul.ztf.lsst-match.hosted", "babamul.ztf.no-lsst-match.hosted"], # Or multiple topics
+    topics=["babamul.ztf.lsst-match.hosted"],  # Topic(s) to subscribe to
     offset="earliest",                     # "latest" or "earliest"
     timeout=30.0,                        # Seconds to wait for messages (None = forever)
     group_id="my-consumer-group",        # Optional, auto-generated if not set
