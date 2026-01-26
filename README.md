@@ -43,7 +43,9 @@ export BABAMUL_KAFKA_USERNAME="your_username"
 export BABAMUL_KAFKA_PASSWORD="your_password"
 export BABAMUL_SERVER="kaboom.caltech.edu:9093"  # Optional, defaults to kaboom.caltech.edu:9093
 ```
+
 Then in Python:
+
 ```python
 from babamul import AlertConsumer
 
@@ -84,6 +86,7 @@ for alert in consumer:
 ```
 
 ### Cutouts
+
 ```python
 from babamul import AlertConsumer
 
@@ -135,41 +138,41 @@ Babamul provides several topic categories based on survey and classification:
 
 **LSST-only** (no ZTF counterpart):
 
-| Topic                               | Description |
-|-------------------------------------|-------------|
-| `babamul.lsst.no-ztf-match.stellar` | Alerts classified as stellar |
-| `babamul.lsst.no-ztf-match.hosted`          | Alerts with a host galaxy |
+| Topic                                       | Description                  |
+|---------------------------------------------|------------------------------|
+| `babamul.lsst.no-ztf-match.stellar`         | Alerts classified as stellar |
+| `babamul.lsst.no-ztf-match.hosted`          | Alerts with a host galaxy    |
 | `babamul.lsst.no-ztf-match.hostless`        | Alerts without a host galaxy |
-| `babamul.lsst.no-ztf-match.unknown`         | Unclassified alerts |
+| `babamul.lsst.no-ztf-match.unknown`         | Unclassified alerts          |
 
 **LSST with ZTF match**:
 
-| Topic                            | Description |
-|----------------------------------|-------------|
-| `babamul.lsst.ztf-match.stellar` | Alerts classified as stellar |
-| `babamul.lsst.ztf-match.hosted`   | Alerts with a host galaxy |
+| Topic                             | Description                  |
+|-----------------------------------|------------------------------|
+| `babamul.lsst.ztf-match.stellar`  | Alerts classified as stellar |
+| `babamul.lsst.ztf-match.hosted`   | Alerts with a host galaxy    |
 | `babamul.lsst.ztf-match.hostless` | Alerts without a host galaxy |
-| `babamul.lsst.ztf-match.unknown`  | Unclassified alerts |
+| `babamul.lsst.ztf-match.unknown`  | Unclassified alerts          |
 
 ### ZTF Topics
 
 **ZTF-only** (no LSST counterpart):
 
-| Topic                               | Description |
-|-------------------------------------|-------------|
+| Topic                               | Description                  |
+|-------------------------------------|------------------------------|
 | `babamul.ztf.no-lsst-match.stellar` | Alerts classified as stellar |
-| `babamul.ztf.no-lsst-match.hosted`           | Alerts with a host galaxy |
-| `babamul.ztf.no-lsst-match.hostless`         | Alerts without a host galaxy |
-| `babamul.ztf.no-lsst-match.unknown`          | Unclassified alerts |
+| `babamul.ztf.no-lsst-match.hosted`  | Alerts with a host galaxy    |
+| `babamul.ztf.no-lsst-match.hostless`| Alerts without a host galaxy |
+| `babamul.ztf.no-lsst-match.unknown` | Unclassified alerts          |
 
 **ZTF with LSST match**:
 
-| Topic                            | Description |
-|----------------------------------|-------------|
+| Topic                            | Description                  |
+|----------------------------------|------------------------------|
 | `babamul.ztf.lsst-match.stellar` | Alerts classified as stellar |
-| `babamul.ztf.lsst-match.hosted`   | Alerts with a host galaxy |
-| `babamul.ztf.lsst-match.hostless` | Alerts without a host galaxy |
-| `babamul.ztf.lsst-match.unknown`  | Unclassified alerts |
+| `babamul.ztf.lsst-match.hosted`  | Alerts with a host galaxy    |
+| `babamul.ztf.lsst-match.hostless`| Alerts without a host galaxy |
+| `babamul.ztf.lsst-match.unknown` | Unclassified alerts          |
 
 ### Wildcard Subscriptions
 
@@ -186,7 +189,6 @@ consumer = AlertConsumer(topics=["babamul.ztf.lsst-match.*"], ...)
 # All hosted alerts from both surveys
 consumer = AlertConsumer(topics=["babamul.*.*.hosted"], ...)
 ```
-
 
 ## Requirements
 
