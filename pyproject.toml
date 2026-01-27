@@ -9,10 +9,16 @@ description = "Python client for consuming ZTF/LSST alerts from BABAMUL Kafka st
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11"
-authors = [
-    { name = "BOOM Team" }
+authors = [{ name = "BOOM Team" }]
+keywords = [
+    "astronomy",
+    "alerts",
+    "kafka",
+    "ztf",
+    "lsst",
+    "transients",
+    "babamul",
 ]
-keywords = ["astronomy", "alerts", "kafka", "ztf", "lsst", "transients", "babamul"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
@@ -33,14 +39,6 @@ dependencies = [
     "pydantic>=2.0.0",
     "matplotlib>=3.8.0",
     "scipy>=1.17.0",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0",
 ]
 
 [project.urls]
@@ -73,4 +71,8 @@ warn_unused_ignores = true
 [dependency-groups]
 dev = [
     "prek>=0.3.0",
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0",
 ]
