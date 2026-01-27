@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
 
 [project]
 name = "babamul"
-version = "0.1.0"
+dynamic = ["version"]
 description = "Python client for consuming ZTF/LSST alerts from BABAMUL Kafka streams"
 readme = "README.md"
 license = "MIT"
@@ -48,6 +48,12 @@ Repository = "https://github.com/boom-astro/babamul"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/babamul"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/babamul/_version.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
