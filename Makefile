@@ -5,7 +5,7 @@ help: ## Show this help.
 
 .PHONY: format
 format: ## Automatically format files.
-	@echo "🚀 Linting code with pre-commit"
+	@echo "🚀 Linting code with pre-commit (prek)"
 	@uv run prek run -a
 
 .PHONY: test
