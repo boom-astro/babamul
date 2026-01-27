@@ -6,7 +6,7 @@ help: ## Show this help.
 .PHONY: format
 format: ## Automatically format files.
 	@echo "🚀 Linting code with pre-commit"
-	@uv run pre-commit run -a
+	@uv run prek run -a
 
 .PHONY: test
 test: ## Test the code with pytest.
