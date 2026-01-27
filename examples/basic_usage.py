@@ -9,8 +9,8 @@ Before running, set your credentials:
 
 Or pass them directly to AlertConsumer.
 """
-from babamul.config import BACKUP_KAFKA_SERVERS
-from babamul import AlertConsumer, ZtfCandidate, LsstCandidate
+
+from babamul import AlertConsumer, LsstCandidate, ZtfCandidate
 
 
 def main() -> None:
@@ -20,7 +20,10 @@ def main() -> None:
         # username="your_username",  # Or set BABAMUL_KAFKA_USERNAME env var
         # password="your_password",  # Or set BABAMUL_KAFKA_PASSWORD env var
         # server=BACKUP_KAFKA_SERVERS,  # Optional, defaults to MAIN_KAFKA_SERVER
-        topics=['babamul.ztf.lsst-match.hosted', 'babamul.lsst.ztf-match.hosted'],  # Example topic
+        topics=[
+            "babamul.ztf.lsst-match.hosted",
+            "babamul.lsst.ztf-match.hosted",
+        ],  # Example topic
         offset="earliest",  # Start from the earliest available message
         timeout=30.0,  # Wait up to 30 seconds for each message
     )
@@ -34,9 +37,13 @@ def main() -> None:
             # Basic info
             print(f"\nAlert #{i + 1}")
             print(f"  Object ID: {alert.objectId}")
-            print(f"  Position: RA={candidate.ra:.6f}, Dec={candidate.dec:.6f}")
+            print(
+                f"  Position: RA={candidate.ra:.6f}, Dec={candidate.dec:.6f}"
+            )
             print(f"  Time: {candidate.datetime.isoformat()}")
-            print(f"  Magnitude: {candidate.magpsf:.2f}±{candidate.sigmapsf:.2f}")
+            print(
+                f"  Magnitude: {candidate.magpsf:.2f}±{candidate.sigmapsf:.2f}"
+            )
 
             # Light curve summary
             print(f"  Photometry points: {len(alert.get_photometry())}")

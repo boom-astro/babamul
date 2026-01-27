@@ -3,16 +3,16 @@
 from .consumer import AlertConsumer
 from .exceptions import (
     AuthenticationError,
+    BabamulConnectionError,
     BabamulError,
     ConfigurationError,
-    BabamulConnectionError,
     DeserializationError,
 )
 from .models import (
     BabamulLsstAlert,
+    BabamulZtfAlert,
     LsstCandidate,
     LsstPhotometry,
-    BabamulZtfAlert,
     ZtfCandidate,
     ZtfPhotometry,
 )
