@@ -1,4 +1,5 @@
 """Pydantic raw models for ZTF and LSST alerts, generated from avro schemas."""
+
 from enum import Enum
 
 from pydantic import AliasChoices, BaseModel, Field
@@ -15,11 +16,11 @@ class Band(str, Enum):
 
 class ZtfCandidate(BaseModel):
     jd: float
-    fid: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    fid: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     pid: int
     diffmaglim: float | None
     programpi: str | None
-    programid: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    programid: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     candid: int
     isdiffpos: bool
     nid: int | None
@@ -59,8 +60,8 @@ class ZtfCandidate(BaseModel):
     szmag1: float | None
     sgscore1: float | None
     distpsnr1: float | None
-    ndethist: int = Field(..., ge=-2**31, le=(2**31 - 1))
-    ncovhist: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    ndethist: int = Field(..., ge=-(2**31), le=(2**31 - 1))
+    ncovhist: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     jdstarthist: float | None
     scorr: float | None
     sgmag2: float | None
@@ -75,7 +76,7 @@ class ZtfCandidate(BaseModel):
     szmag3: float | None
     sgscore3: float | None
     distpsnr3: float | None
-    nmtchps: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    nmtchps: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     dsnrms: float | None
     ssnrms: float | None
     dsdiff: float | None
@@ -109,14 +110,14 @@ class ZtfPhotometry(BaseModel):
     ra: float | None
     dec: float | None
     snr: float | None
-    programid: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    programid: int = Field(..., ge=-(2**31), le=(2**31 - 1))
 
 
 class BandRateProperties(BaseModel):
     rate: float
     rate_error: float
     red_chi2: float
-    nb_data: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    nb_data: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     dt: float
 
 
@@ -162,7 +163,7 @@ class LsstPhotometry(BaseModel):
 
 
 class LsstMatch(BaseModel):
-    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
+    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
     ra: float
     dec: float
     prv_candidates: list[LsstPhotometry]
@@ -174,23 +175,29 @@ class ZtfSurveyMatches(BaseModel):
 
 
 class EnrichedZtfAlert(BaseModel):
-    candid: int = Field(..., alias=AliasChoices('candid', '_id'))
-    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
+    candid: int = Field(..., alias=AliasChoices("candid", "_id"))
+    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
     candidate: ZtfCandidate
     prv_candidates: list[ZtfPhotometry]
     prv_nondetections: list[ZtfPhotometry]
     fp_hists: list[ZtfPhotometry]
     properties: ZtfAlertProperties
     survey_matches: ZtfSurveyMatches | None
-    cutoutScience: bytes | None = Field(None, alias=AliasChoices('cutoutScience', 'cutout_science'))
-    cutoutTemplate: bytes | None = Field(None, alias=AliasChoices('cutoutTemplate', 'cutout_template'))
-    cutoutDifference: bytes | None = Field(None, alias=AliasChoices('cutoutDifference', 'cutout_difference'))
+    cutoutScience: bytes | None = Field(
+        None, alias=AliasChoices("cutoutScience", "cutout_science")
+    )
+    cutoutTemplate: bytes | None = Field(
+        None, alias=AliasChoices("cutoutTemplate", "cutout_template")
+    )
+    cutoutDifference: bytes | None = Field(
+        None, alias=AliasChoices("cutoutDifference", "cutout_difference")
+    )
 
 
 class LsstCandidate(BaseModel):
     diaSourceId: int
     visit: int
-    detector: int = Field(..., ge=-2**31, le=(2**31 - 1))
+    detector: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     diaObjectId: int | None
     ssObjectId: int | None
     parentDiaSourceId: int | None
@@ -260,7 +267,7 @@ class LsstCandidate(BaseModel):
     pixelFlags_injected_template: bool | None
     pixelFlags_injected_templateCenter: bool | None
     glint_trail: bool | None
-    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
+    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
     jd: float
     magpsf: float
     sigmapsf: float
@@ -282,7 +289,7 @@ class LsstAlertProperties(BaseModel):
 
 
 class ZtfMatch(BaseModel):
-    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
+    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
     ra: float
     dec: float
     prv_candidates: list[ZtfPhotometry]
@@ -295,13 +302,19 @@ class LsstSurveyMatches(BaseModel):
 
 
 class EnrichedLsstAlert(BaseModel):
-    candid: int = Field(..., alias=AliasChoices('candid', '_id'))
-    objectId: str = Field(..., alias=AliasChoices('objectId', 'object_id'))
+    candid: int = Field(..., alias=AliasChoices("candid", "_id"))
+    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
     candidate: LsstCandidate
     prv_candidates: list[LsstPhotometry]
     fp_hists: list[LsstPhotometry]
     properties: LsstAlertProperties
-    cutoutScience: bytes | None = Field(None, alias=AliasChoices('cutoutScience', 'cutout_science'))
-    cutoutTemplate: bytes | None = Field(None, alias=AliasChoices('cutoutTemplate', 'cutout_template'))
-    cutoutDifference: bytes | None = Field(None, alias=AliasChoices('cutoutDifference', 'cutout_difference'))
+    cutoutScience: bytes | None = Field(
+        None, alias=AliasChoices("cutoutScience", "cutout_science")
+    )
+    cutoutTemplate: bytes | None = Field(
+        None, alias=AliasChoices("cutoutTemplate", "cutout_template")
+    )
+    cutoutDifference: bytes | None = Field(
+        None, alias=AliasChoices("cutoutDifference", "cutout_difference")
+    )
     survey_matches: LsstSurveyMatches | None

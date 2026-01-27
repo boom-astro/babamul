@@ -18,13 +18,14 @@ logger = logging.getLogger(__name__)
 
 CUTOUT_TYPES = ["Science", "Template", "Difference"]
 
+
 def plot_cutouts(
     alert: dict[str, Any],
     survey: str,
     use_rotation: bool = False,
     axes: list[plt.Axes] | None = None,
     show: bool = True,
-    orientation: str = 'horizontal',
+    orientation: str = "horizontal",
     figsize: tuple | None = None,
     title: str | None = None,
 ) -> list[plt.Axes]:
@@ -66,37 +67,43 @@ def plot_cutouts(
     # Create figure if needed
     if axes is None:
         if figsize is None:
-            figsize = (12, 4) if orientation == 'horizontal' else (4, 10)
+            figsize = (12, 4) if orientation == "horizontal" else (4, 10)
 
-        if orientation == 'horizontal':
+        if orientation == "horizontal":
             fig, axes = plt.subplots(1, 3, figsize=figsize)
         else:
             fig, axes = plt.subplots(3, 1, figsize=figsize)
 
     for ax, ctype in zip(axes, CUTOUT_TYPES, strict=True):
-        cutout_key = f'cutout{ctype}'
+        cutout_key = f"cutout{ctype}"
 
         # Handle both dict and classes
         if isinstance(alert, dict):
             cutout_data = alert.get(cutout_key)
         else:
             cutout_data = getattr(alert, cutout_key, None)
-        if cutout_data is None or cutout_data == b'':
+        if cutout_data is None or cutout_data == b"":
             ax.set_title(f"No {ctype} cutout")
-            ax.axis('off')
+            ax.axis("off")
             logger.warning(f"{ctype} cutout missing in alert")
             continue
 
         # handle both compressed and uncompressed data
         rotpa = None
         try:
-            with gzip.open(io.BytesIO(cutout_data), "rb") as f, \
-                 fits.open(io.BytesIO(f.read()), ignore_missing_simple=True) as hdu:
-                rotpa = hdu[0].header.get('ROTPA', None)
+            with (
+                gzip.open(io.BytesIO(cutout_data), "rb") as f,
+                fits.open(
+                    io.BytesIO(f.read()), ignore_missing_simple=True
+                ) as hdu,
+            ):
+                rotpa = hdu[0].header.get("ROTPA", None)
                 data = hdu[0].data
         except OSError:
-            with fits.open(io.BytesIO(cutout_data), ignore_missing_simple=True) as hdu:
-                rotpa = hdu[0].header.get('ROTPA', None)
+            with fits.open(
+                io.BytesIO(cutout_data), ignore_missing_simple=True
+            ) as hdu:
+                rotpa = hdu[0].header.get("ROTPA", None)
                 data = hdu[0].data
 
         # Clean the data
@@ -114,8 +121,7 @@ def plot_cutouts(
         img_norm = norm(img)
 
         normalizer = AsymmetricPercentileInterval(
-            lower_percentile=1,
-            upper_percentile=100
+            lower_percentile=1, upper_percentile=100
         )
         vmin, vmax = normalizer.get_limits(img_norm)
 
@@ -123,7 +129,14 @@ def plot_cutouts(
         if use_rotation and rotpa is not None:
             try:
                 # Rotate clockwise by ROTPA degrees, reshape to avoid cropping, fill blanks with 0
-                img_norm = rotate(img_norm, -rotpa, reshape=True, order=1, mode='constant', cval=0.0)
+                img_norm = rotate(
+                    img_norm,
+                    -rotpa,
+                    reshape=True,
+                    order=1,
+                    mode="constant",
+                    cval=0.0,
+                )
             except Exception as e:
                 # If scipy is not available or rotation fails, skip rotation
                 logger.warning(f"Rotation failed for {ctype} cutout: {e}")
@@ -135,12 +148,12 @@ def plot_cutouts(
         # Display
         ax.imshow(img_norm, cmap="bone", origin="lower", vmin=vmin, vmax=vmax)
         ax.set_title(ctype, fontsize=10)
-        ax.axis('off')
+        ax.axis("off")
 
     if show:
         if title is None:
             title = f"Thumbnails for {alert['objectId']}"
-        plt.suptitle(title, fontsize=12, fontweight='bold')
+        plt.suptitle(title, fontsize=12, fontweight="bold")
         plt.tight_layout()
         plt.show()
 
