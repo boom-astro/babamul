@@ -1,4 +1,5 @@
 """Pydantic models for Babamul alerts."""
+
 from datetime import timezone
 
 import matplotlib.pyplot as plt
@@ -63,11 +64,11 @@ class BabamulZtfAlert(EnrichedZtfAlert):
 
     def plot_cutouts(
         self,
-        orientation: str = 'horizontal',
+        orientation: str = "horizontal",
         axes: list[plt.Axes] | None = None,
         show: bool = True,
         figsize: tuple | None = None,
-        title: str | None = None
+        title: str | None = None,
     ) -> list[plt.Axes]:
         """Display the science, template, and difference cutouts for this alert.
 
@@ -89,11 +90,20 @@ class BabamulZtfAlert(EnrichedZtfAlert):
         list of matplotlib.axes.Axes
             List of the three axes objects (science, template, difference).
         """
-        return plot_cutouts(self, self.survey, False, axes, show, orientation, figsize, title or self.objectId)
+        return plot_cutouts(
+            self,
+            self.survey,
+            False,
+            axes,
+            show,
+            orientation,
+            figsize,
+            title or self.objectId,
+        )
 
     def show_cutouts(
         self,
-        orientation: str = 'horizontal',
+        orientation: str = "horizontal",
     ) -> None:
         """Display the cutouts in a new matplotlib figure.
 
@@ -104,6 +114,7 @@ class BabamulZtfAlert(EnrichedZtfAlert):
         """
         self.plot_cutouts(orientation=orientation, show=True)
 
+
 ZtfCandidate.datetime = property(
     lambda self: Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)
 )
@@ -111,10 +122,13 @@ ZtfPhotometry.datetime = property(
     lambda self: Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)
 )
 
+
 class BabamulLsstAlert(EnrichedLsstAlert):
     """Pydantic model for a Babamul LSST alert."""
 
-    def get_photometry(self, deduplicated: bool = True) -> list[LsstPhotometry]:
+    def get_photometry(
+        self, deduplicated: bool = True
+    ) -> list[LsstPhotometry]:
         """Combine and return all photometry data from the alert."""
         photometry = []
         # Add prv_candidates photometry
@@ -150,12 +164,12 @@ class BabamulLsstAlert(EnrichedLsstAlert):
 
     def plot_cutouts(
         self,
-        orientation: str = 'horizontal',
+        orientation: str = "horizontal",
         use_rotation: bool = True,
         axes: list[plt.Axes] | None = None,
         show: bool = True,
         figsize: tuple | None = None,
-        title: str | None = None
+        title: str | None = None,
     ) -> list[plt.Axes]:
         """Display the science, template, and difference cutouts for this alert.
 
@@ -179,11 +193,20 @@ class BabamulLsstAlert(EnrichedLsstAlert):
         list of matplotlib.axes.Axes
             List of the three axes objects (science, template, difference).
         """
-        return plot_cutouts(self, self.survey, use_rotation, axes, show, orientation, figsize, title or self.objectId)
+        return plot_cutouts(
+            self,
+            self.survey,
+            use_rotation,
+            axes,
+            show,
+            orientation,
+            figsize,
+            title or self.objectId,
+        )
 
     def show_cutouts(
         self,
-        orientation: str = 'horizontal',
+        orientation: str = "horizontal",
         use_rotation: bool = True,
     ) -> None:
         """Display the cutouts in a new matplotlib figure.
@@ -195,7 +218,10 @@ class BabamulLsstAlert(EnrichedLsstAlert):
         use_rotation : bool, default=True
             Whether to apply rotation based on FITS header (if available).
         """
-        self.plot_cutouts(use_rotation=use_rotation, orientation=orientation, show=True)
+        self.plot_cutouts(
+            use_rotation=use_rotation, orientation=orientation, show=True
+        )
+
 
 LsstCandidate.datetime = property(
     lambda self: Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)

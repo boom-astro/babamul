@@ -53,7 +53,7 @@ class TestAlertConsumerInit:
             password="pass",
             topics=["test.topic"],
         )
-        assert consumer.group_id == "testuser-client"
+        assert consumer.group_id == "testuser-client-1"
         consumer.close()
 
     def test_custom_group_id(self) -> None:
@@ -148,7 +148,12 @@ class TestAlertConsumerIteration:
         mock_msg_null.error.return_value = None
         mock_msg_null.value.return_value = None
 
-        mock_consumer.poll.side_effect = [mock_msg_valid, mock_msg_null, mock_msg_valid, None]
+        mock_consumer.poll.side_effect = [
+            mock_msg_valid,
+            mock_msg_null,
+            mock_msg_valid,
+            None,
+        ]
         mock_deserialize.return_value = sample_ztf_alert_dict
 
         consumer = AlertConsumer(

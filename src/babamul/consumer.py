@@ -7,7 +7,11 @@ from confluent_kafka import Consumer, KafkaError, KafkaException
 
 from .avro_utils import deserialize_alert
 from .config import MAIN_KAFKA_SERVER, BabamulConfig
-from .exceptions import AuthenticationError, ConnectionError, DeserializationError
+from .exceptions import (
+    AuthenticationError,
+    ConnectionError,
+    DeserializationError,
+)
 from .models import BabamulLsstAlert, BabamulZtfAlert
 
 logger = logging.getLogger(__name__)
@@ -78,7 +82,7 @@ class AlertConsumer:
             group_id=group_id,
             offset=offset,
             timeout=timeout,
-            auto_commit=auto_commit
+            auto_commit=auto_commit,
         )
 
         # Normalize topics to a list
@@ -91,7 +95,9 @@ class AlertConsumer:
             raise ValueError("At least one topic must be specified")
 
         # Generate group_id if not provided
-        self._group_id = self._config.group_id or f"{self._config.username}-client-1"
+        self._group_id = (
+            self._config.group_id or f"{self._config.username}-client-1"
+        )
 
         # Timeout in milliseconds for poll(), -1 means infinite
         self._poll_timeout_ms = (
@@ -128,7 +134,10 @@ class AlertConsumer:
             return consumer
         except KafkaException as e:
             error_str = str(e)
-            if "authentication" in error_str.lower() or "sasl" in error_str.lower():
+            if (
+                "authentication" in error_str.lower()
+                or "sasl" in error_str.lower()
+            ):
                 raise AuthenticationError(f"Authentication failed: {e}") from e
             raise ConnectionError(f"Failed to connect to Kafka: {e}") from e
 
@@ -151,7 +160,9 @@ class AlertConsumer:
 
         # Calculate poll timeout in seconds (-1 means infinite wait)
         poll_timeout: float = (
-            self._poll_timeout_ms / 1000.0 if self._poll_timeout_ms > 0 else -1.0
+            self._poll_timeout_ms / 1000.0
+            if self._poll_timeout_ms > 0
+            else -1.0
         )
 
         while not self._closed:
@@ -169,13 +180,23 @@ class AlertConsumer:
                 if error:
                     # Use getattr for KafkaError constants for better type compatibility
                     partition_eof = getattr(KafkaError, "_PARTITION_EOF", None)
-                    all_brokers_down = getattr(KafkaError, "_ALL_BROKERS_DOWN", None)
+                    all_brokers_down = getattr(
+                        KafkaError, "_ALL_BROKERS_DOWN", None
+                    )
 
-                    if partition_eof is not None and error.code() == partition_eof:
+                    if (
+                        partition_eof is not None
+                        and error.code() == partition_eof
+                    ):
                         # End of partition, continue polling
-                        logger.debug(f"Reached end of partition {msg.partition()}")
+                        logger.debug(
+                            f"Reached end of partition {msg.partition()}"
+                        )
                         continue
-                    elif all_brokers_down is not None and error.code() == all_brokers_down:
+                    elif (
+                        all_brokers_down is not None
+                        and error.code() == all_brokers_down
+                    ):
                         raise ConnectionError("All Kafka brokers are down")
                     else:
                         logger.warning(f"Kafka error: {error}")

@@ -3,8 +3,10 @@
 import os
 from dataclasses import dataclass
 
-MAIN_KAFKA_SERVER = "kaboom.caltech.edu:9093" # Default BABAMUL Kafka server in Caltech
-BACKUP_KAFKA_SERVERS = "babamul.umn.edu:9093" # Backup BABAMUL Kafka server in the University of Minnesota
+MAIN_KAFKA_SERVER = (
+    "kaboom.caltech.edu:9093"  # Default BABAMUL Kafka server in Caltech
+)
+BACKUP_KAFKA_SERVERS = "babamul.umn.edu:9093"  # Backup BABAMUL Kafka server in the University of Minnesota
 
 
 @dataclass
@@ -62,7 +64,9 @@ class BabamulConfig:
         """
         final_username = username or os.environ.get("BABAMUL_KAFKA_USERNAME")
         final_password = password or os.environ.get("BABAMUL_KAFKA_PASSWORD")
-        final_server = server or os.environ.get("BABAMUL_SERVER", MAIN_KAFKA_SERVER)
+        final_server = server or os.environ.get(
+            "BABAMUL_SERVER", MAIN_KAFKA_SERVER
+        )
         if not final_username:
             raise ValueError(
                 "Username is required. Provide it directly or set BABAMUL_KAFKA_USERNAME environment variable."
