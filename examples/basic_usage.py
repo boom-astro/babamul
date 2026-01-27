@@ -24,7 +24,7 @@ def main() -> None:
             "babamul.ztf.lsst-match.hosted",
             "babamul.lsst.ztf-match.hosted",
         ],  # Example topic
-        offset="earliest",  # Start from most recent alerts
+        offset="earliest",  # Start from the earliest available message
         timeout=30.0,  # Wait up to 30 seconds for each message
     )
 

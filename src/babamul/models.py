@@ -33,8 +33,6 @@ class BabamulZtfAlert(EnrichedZtfAlert):
         photometry.extend(self.fp_hists)
         # Add prv_nondetections photometry
         photometry.extend(self.prv_nondetections)
-        # Add fp_hists photometry if available
-        photometry.extend(self.fp_hists)
 
         # Sort photometry by Julian Date (jd)
         photometry.sort(key=lambda x: x.jd)

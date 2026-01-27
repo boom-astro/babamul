@@ -3,14 +3,14 @@
 from .consumer import AlertConsumer
 from .exceptions import (
     AuthenticationError,
+    BabamulConnectionError,
     BabamulError,
     ConfigurationError,
-    ConnectionError,
     DeserializationError,
 )
 from .models import (
+    BabamulLsstAlert,
     BabamulZtfAlert,
-    EnrichedLsstAlert,
     LsstCandidate,
     LsstPhotometry,
     ZtfCandidate,
@@ -28,11 +28,11 @@ __all__ = [
     "ZtfCandidate",
     "LsstCandidate",
     "LsstPhotometry",
-    "EnrichedLsstAlert",
+    "BabamulLsstAlert",
     # Exceptions
     "BabamulError",
     "AuthenticationError",
-    "ConnectionError",
+    "BabamulConnectionError",
     "DeserializationError",
     "ConfigurationError",
     # Version

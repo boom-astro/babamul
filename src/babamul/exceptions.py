@@ -13,7 +13,7 @@ class AuthenticationError(BabamulError):
     pass
 
 
-class ConnectionError(BabamulError):
+class BabamulConnectionError(BabamulError):
     """Raised when connection to Kafka server fails."""
 
     pass

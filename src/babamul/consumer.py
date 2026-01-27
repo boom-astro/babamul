@@ -9,7 +9,7 @@ from .avro_utils import deserialize_alert
 from .config import MAIN_KAFKA_SERVER, BabamulConfig
 from .exceptions import (
     AuthenticationError,
-    ConnectionError,
+    BabamulConnectionError,
     DeserializationError,
 )
 from .models import BabamulLsstAlert, BabamulZtfAlert
@@ -69,7 +69,7 @@ class AlertConsumer:
         -------
         ValueError
             If required credentials are missing.
-        ConnectionError
+        BabamulConnectionError
             If connection to Kafka fails.
         AuthenticationError
             If authentication fails.
@@ -99,9 +99,9 @@ class AlertConsumer:
             self._config.group_id or f"{self._config.username}-client-1"
         )
 
-        # Timeout in milliseconds for poll(), -1 means infinite
-        self._poll_timeout_ms = (
-            int(self._config.timeout * 1000) if self._config.timeout else -1
+        # Timeout in seconds for poll(), -1 means infinite
+        self._poll_timeout = (
+            self._config.timeout if self._config.timeout is not None else -1
         )
 
         # Whether to yield raw alerts or model instances
@@ -139,7 +139,9 @@ class AlertConsumer:
                 or "sasl" in error_str.lower()
             ):
                 raise AuthenticationError(f"Authentication failed: {e}") from e
-            raise ConnectionError(f"Failed to connect to Kafka: {e}") from e
+            raise BabamulConnectionError(
+                f"Failed to connect to Kafka: {e}"
+            ) from e
 
     def _ensure_consumer(self) -> Consumer:
         """Ensure the consumer is created and return it."""
@@ -153,21 +155,14 @@ class AlertConsumer:
         Yields:
             BabamulZtfAlert | BabamulLsstAlert | dict objects as they are received from Kafka (dict if as_raw=True).
         Raises:
-            ConnectionError: If connection to Kafka is lost.
+            BabamulConnectionError: If connection to Kafka is lost.
             DeserializationError: If alert deserialization fails.
         """
         consumer = self._ensure_consumer()
 
-        # Calculate poll timeout in seconds (-1 means infinite wait)
-        poll_timeout: float = (
-            self._poll_timeout_ms / 1000.0
-            if self._poll_timeout_ms > 0
-            else -1.0
-        )
-
         while not self._closed:
             try:
-                msg = consumer.poll(timeout=poll_timeout)
+                msg = consumer.poll(timeout=self._poll_timeout)
 
                 if msg is None:
                     # Timeout reached
@@ -197,7 +192,9 @@ class AlertConsumer:
                         all_brokers_down is not None
                         and error.code() == all_brokers_down
                     ):
-                        raise ConnectionError("All Kafka brokers are down")
+                        raise BabamulConnectionError(
+                            "All Kafka brokers are down"
+                        )
                     else:
                         logger.warning(f"Kafka error: {error}")
                         continue
