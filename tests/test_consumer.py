@@ -53,7 +53,7 @@ class TestAlertConsumerInit:
             password="pass",
             topics=["test.topic"],
         )
-        assert consumer.group_id == "testuser-client"
+        assert consumer.group_id == "testuser-client-1"
         consumer.close()
 
     def test_custom_group_id(self) -> None:
