@@ -13,7 +13,7 @@ from .exceptions import (
     DeserializationError,
 )
 from .models import LsstAlert, ZtfAlert
-from .topics import ALL_TOPICS, TopicType
+from .topics import TopicType
 
 logger = logging.getLogger(__name__)
 
@@ -129,7 +129,7 @@ class AlertConsumer:
         }
 
         try:
-            consumer = Consumer(config)
+            consumer = Consumer(config)  # type: ignore
             consumer.subscribe(self._topics)
             logger.info(f"Subscribed to topics: {self._topics}")
             return consumer
@@ -213,9 +213,9 @@ class AlertConsumer:
                         continue
 
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
-                    if msg.topic().startswith("babamul.ztf"):
+                    if msg.topic().startswith("babamul.ztf"):  # type: ignore
                         alert = ZtfAlert.model_validate(alert_dict)
-                    elif msg.topic().startswith("babamul.lsst"):
+                    elif msg.topic().startswith("babamul.lsst"):  # type: ignore
                         alert = LsstAlert.model_validate(alert_dict)
                     else:
                         logger.error(f"Unknown topic format: {msg.topic()}")
