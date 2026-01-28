@@ -81,4 +81,7 @@ dev = [
     "pytest-cov>=4.0.0",
     "mypy>=1.0.0",
     "ruff>=0.1.0",
+    "papermill>=2.6.0",
+    "dotenv>=0.9.9",
+    "ipykernel>=7.1.0",
 ]
