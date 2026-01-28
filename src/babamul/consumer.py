@@ -12,7 +12,8 @@ from .exceptions import (
     BabamulConnectionError,
     DeserializationError,
 )
-from .models import BabamulLsstAlert, BabamulZtfAlert
+from .models import LsstAlert, ZtfAlert
+from .topics import ALL_TOPICS, TopicType
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ class AlertConsumer:
 
     def __init__(
         self,
-        topics: str | list[str] = "",
+        topics: TopicType | list[TopicType] | str | list[str] = "",
         username: str | None = None,
         password: str | None = None,
         server: str = MAIN_KAFKA_SERVER,
@@ -149,7 +150,7 @@ class AlertConsumer:
             self._consumer = self._create_consumer()
         return self._consumer
 
-    def __iter__(self) -> Iterator[BabamulZtfAlert | BabamulLsstAlert | dict]:
+    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | dict]:
         """Iterate over alerts from the subscribed topics.
 
         Yields:
@@ -213,9 +214,9 @@ class AlertConsumer:
 
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
                     if msg.topic().startswith("babamul.ztf"):
-                        alert = BabamulZtfAlert.model_validate(alert_dict)
+                        alert = ZtfAlert.model_validate(alert_dict)
                     elif msg.topic().startswith("babamul.lsst"):
-                        alert = BabamulLsstAlert.model_validate(alert_dict)
+                        alert = LsstAlert.model_validate(alert_dict)
                     else:
                         logger.error(f"Unknown topic format: {msg.topic()}")
                         continue

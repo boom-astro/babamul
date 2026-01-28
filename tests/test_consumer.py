@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from babamul import AlertConsumer
-from babamul.models import BabamulLsstAlert, BabamulZtfAlert
+from babamul.models import LsstAlert, ZtfAlert
 
 
 class TestAlertConsumerInit:
@@ -232,7 +232,7 @@ class TestAlertConsumerIteration:
 
         alerts = list(consumer)
         assert len(alerts) == 1
-        assert isinstance(alerts[0], BabamulZtfAlert)
+        assert isinstance(alerts[0], ZtfAlert)
 
     @patch("babamul.consumer.deserialize_alert")
     @patch("babamul.consumer.Consumer")
@@ -263,5 +263,5 @@ class TestAlertConsumerIteration:
 
         alerts = list(consumer)
         assert len(alerts) == 1
-        assert isinstance(alerts[0], BabamulLsstAlert)
+        assert isinstance(alerts[0], LsstAlert)
         assert alerts[0].objectId == "LSST24aabcdef"
