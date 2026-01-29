@@ -1,8 +1,8 @@
 """Babamul: A Python client for consuming ZTF/LSST alerts from Babamul Kafka
-streams.
+streams and interacting with the Babamul API.
 """
 
-from . import topics
+from . import api, topics
 from .consumer import AlertConsumer
 from .exceptions import (
     AuthenticationError,
@@ -27,6 +27,7 @@ except ImportError:
 
 __all__ = [
     # Modules
+    "api",
     "topics",
     # Main classes
     "AlertConsumer",

@@ -217,6 +217,7 @@ dependencies = [
     { name = "fastavro" },
     { name = "matplotlib" },
     { name = "pydantic" },
+    { name = "requests" },
     { name = "scipy" },
 ]
 
@@ -240,6 +241,7 @@ requires-dist = [
     { name = "fastavro", specifier = ">=1.9.0" },
     { name = "matplotlib", specifier = ">=3.8.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "requests", specifier = ">=2.32.5" },
     { name = "scipy", specifier = ">=1.17.0" },
 ]
 

@@ -39,6 +39,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "matplotlib>=3.8.0",
     "scipy>=1.17.0",
+    "requests>=2.32.5",
 ]
 
 [project.urls]
