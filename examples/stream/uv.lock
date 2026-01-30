@@ -171,7 +171,7 @@ wheels = [
 ]
 
 [[package]]
-name = "babamul-basic-example"
+name = "babamul-stream-example"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
