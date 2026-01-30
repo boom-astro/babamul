@@ -1,12 +1,8 @@
-"""Babamul - Python client for consuming ZTF/LSST alerts from BABAMUL Kafka streams."""
+"""Babamul: A Python client for consuming ZTF/LSST alerts from Babamul Kafka
+streams and interacting with the Babamul API.
+"""
 
-from .api_client import (
-    AlertCutouts,
-    APIClient,
-    KafkaCredential,
-    ObjectSearchResult,
-    UserProfile,
-)
+from . import api, topics
 from .consumer import AlertConsumer
 from .exceptions import (
     APIAuthenticationError,
@@ -19,10 +15,10 @@ from .exceptions import (
     DeserializationError,
 )
 from .models import (
-    BabamulLsstAlert,
-    BabamulZtfAlert,
+    LsstAlert,
     LsstCandidate,
     LsstPhotometry,
+    ZtfAlert,
     ZtfCandidate,
     ZtfPhotometry,
 )
@@ -33,21 +29,18 @@ except ImportError:
     __version__ = "0.0.0+unknown"
 
 __all__ = [
+    # Modules
+    "api",
+    "topics",
     # Main classes
     "AlertConsumer",
-    "APIClient",
-    # API Models
-    "AlertCutouts",
-    "ObjectSearchResult",
-    "KafkaCredential",
-    "UserProfile",
-    # Alert Models
-    "BabamulZtfAlert",
+    # Models
+    "ZtfAlert",
     "ZtfPhotometry",
     "ZtfCandidate",
     "LsstCandidate",
     "LsstPhotometry",
-    "BabamulLsstAlert",
+    "LsstAlert",
     # Exceptions
     "BabamulError",
     "AuthenticationError",

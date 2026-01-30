@@ -21,7 +21,7 @@ from .raw_models import (
 # to which we add extra functions, like a `get_photometry` accessor
 # that takes care of combining the different photometry sources
 # (prv_candidates, prv_nondetections, fp_hists)
-class BabamulZtfAlert(EnrichedZtfAlert):
+class ZtfAlert(EnrichedZtfAlert):
     """Pydantic model for a Babamul ZTF alert."""
 
     def get_photometry(self, deduplicated: bool = True) -> list[ZtfPhotometry]:
@@ -121,7 +121,7 @@ ZtfPhotometry.datetime = property(
 )
 
 
-class BabamulLsstAlert(EnrichedLsstAlert):
+class LsstAlert(EnrichedLsstAlert):
     """Pydantic model for a Babamul LSST alert."""
 
     def get_photometry(
