@@ -99,6 +99,9 @@ class AlertConsumer:
         self._group_id = (
             self._config.group_id or f"{self._config.username}-client-1"
         )
+        # Group ID must start with username-
+        if not self._group_id.startswith(f"{self._config.username}-"):
+            self._group_id = f"{self._config.username}-{self._group_id}"
 
         # Timeout in seconds for poll(), -1 means infinite
         self._poll_timeout = (
