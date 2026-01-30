@@ -78,3 +78,38 @@ delete = partial(_request, "delete")
 
 def get_current_user() -> dict:
     return get("/profile")
+
+
+def get_alerts(
+    survey: Literal["ztf", "lsst"],
+    ra: float | None = None,
+    dec: float | None = None,
+    radius_arcsec: float | None = None,
+) -> list[dict]:
+    """Get recent alerts from the Babamul API.
+
+    Parameters
+    ----------
+    survey : {'ztf', 'lsst'}
+        The survey to get alerts from.
+    ra : float, optional
+        Right ascension in degrees.
+    dec : float, optional
+        Declination in degrees.
+    radius_arcsec : float, optional
+        Search radius in arcseconds.
+
+    Returns
+    -------
+    list of dict
+        A list of alert dictionaries.
+    """
+    path = f"/surveys/{survey}/alerts"
+    params = {}
+    if ra is not None:
+        params["ra"] = ra
+    if dec is not None:
+        params["dec"] = dec
+    if radius_arcsec is not None:
+        params["radius_arcsec"] = radius_arcsec
+    return get(path, params=params)["data"]
