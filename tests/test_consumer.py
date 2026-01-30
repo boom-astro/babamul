@@ -65,7 +65,7 @@ class TestAlertConsumerInit:
             topics=["test.topic"],
             group_id="my-custom-group",
         )
-        assert consumer.group_id == "my-custom-group"
+        assert consumer.group_id == "user-my-custom-group"
         consumer.close()
 
     def test_env_credentials(self, monkeypatch: pytest.MonkeyPatch) -> None:
