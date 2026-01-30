@@ -1,0 +1,10 @@
+[project]
+name = "babamul-stream-example"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "babamul",
+    "dotenv>=0.9.9",
+    "jupyter>=1.1.1",
+    "polars>=1.37.1",
+]
