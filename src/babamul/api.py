@@ -470,7 +470,7 @@ class APIClient:
         # Decode base64 cutouts if present
         for key in ["cutoutScience", "cutoutTemplate", "cutoutDifference"]:
             if data.get(key) and isinstance(data[key], str):
-                data[key] = "base64.b64decode(data[key])"
+                data[key] = base64.b64decode(data[key])
 
         if survey == "ztf":
             return ZtfAlert.model_validate(data)
