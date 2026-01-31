@@ -35,7 +35,7 @@ class APIClient:
         Parameters
         ----------
         base_url : str | None
-            API base URL. Defaults to BABAMUL_API_URL env var or babamul.caltech.edu.
+            API base URL. Defaults to babamul.caltech.edu/api/babamul.
         token : str | None
             JWT authentication token. Can be set later via login().
         timeout : float

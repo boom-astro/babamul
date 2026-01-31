@@ -9,7 +9,7 @@ MAIN_KAFKA_SERVER = (
 BACKUP_KAFKA_SERVERS = "babamul.umn.edu:9093"  # Backup BABAMUL Kafka server in the University of Minnesota
 
 API_URLS = {
-    "local": "https://localhost:4000/babamul",
+    "local": "http://localhost:4000/babamul",
     "production": "https://babamul.caltech.edu/api/babamul",
 }
 
@@ -18,7 +18,6 @@ def get_base_url() -> str:
     """Get the API base URL based on the BABAMUL_ENV environment variable.
 
     Returns the URL for "local" or "production" (default).
-    Can be overridden entirely via BABAMUL_API_URL.
     """
     env = os.getenv("BABAMUL_ENV", "production").lower()
     return API_URLS[env]
@@ -126,7 +125,7 @@ class APIConfig:
         Parameters
         ----------
         base_url : str | None
-            API base URL. Can also be set via BABAMUL_API_URL env var.
+            API base URL.
         token : str | None
             JWT token for authentication. Can also be set via BABAMUL_API_TOKEN env var.
         timeout : float
@@ -137,7 +136,7 @@ class APIConfig:
         APIConfig
             API configuration instance.
         """
-        final_base_url = base_url or os.environ.get("BABAMUL_API_URL") or get_base_url()
+        final_base_url = base_url or get_base_url()
         final_token = token or os.environ.get("BABAMUL_API_TOKEN")
 
         return cls(

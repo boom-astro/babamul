@@ -1,4 +1,4 @@
-"""Tests for babamul.api_client against a real API at localhost:4000."""
+"""Tests for the babamul.api.APIClient class."""
 import os
 import dotenv
 import pytest
@@ -94,7 +94,7 @@ class TestAPIClientInit:
         with pytest.raises(
             APIAuthenticationError, match="Authentication required"
         ):
-            client._request("GET", "/babamul/profile")
+            client._request("GET", "/profile")
 
 
 # ---- Profile tests ----
