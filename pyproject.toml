@@ -87,4 +87,5 @@ dev = [
     "dotenv>=0.9.9",
     "ipykernel>=7.1.0",
     "polars>=1.37.1",
+    "dotenv>=0.9.9",
 ]
