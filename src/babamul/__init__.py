@@ -5,6 +5,9 @@ streams and interacting with the Babamul API.
 from . import api, topics
 from .consumer import AlertConsumer
 from .exceptions import (
+    APIAuthenticationError,
+    APIError,
+    APINotFoundError,
     AuthenticationError,
     BabamulConnectionError,
     BabamulError,
@@ -44,6 +47,9 @@ __all__ = [
     "BabamulConnectionError",
     "DeserializationError",
     "ConfigurationError",
+    "APIError",
+    "APIAuthenticationError",
+    "APINotFoundError",
     # Version
     "__version__",
 ]

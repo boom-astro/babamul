@@ -7,6 +7,9 @@ build/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.env
+.venv/
+.ipynb_checkpoints/
 
 # Auto-generated version file
 src/babamul/_version.py
