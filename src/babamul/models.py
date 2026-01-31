@@ -155,12 +155,12 @@ class ZtfAlert(EnrichedZtfAlert):
         """
         self.plot_cutouts(orientation=orientation, show=True)
 
-    def fetch_cutouts(self,api_client) -> AlertCutouts:
+    def fetch_cutouts(self, api_client) -> AlertCutouts:
         """Fetch cutouts for this alert using the provided API client.
 
         Parameters
         ----------
-        api_client : BabamulAPIClient
+        api_client : APIClient
             An authenticated Babamul API client instance.
 
         Returns
@@ -278,12 +278,12 @@ class LsstAlert(EnrichedLsstAlert):
             use_rotation=use_rotation, orientation=orientation, show=True
         )
 
-    def fetch_cutouts(self,api_client) -> AlertCutouts:
+    def fetch_cutouts(self, api_client) -> AlertCutouts:
         """Fetch cutouts for this alert using the provided API client.
 
         Parameters
         ----------
-        api_client : BabamulAPIClient
+        api_client : APIClient
             An authenticated Babamul API client instance.
 
         Returns
@@ -331,7 +331,7 @@ class ZtfApiAlert(BaseModel):
 
         Parameters
         ----------
-        api_client : BabamulAPIClient
+        api_client : APIClient
             An authenticated Babamul API client instance.
 
         Returns
@@ -370,7 +370,7 @@ class LsstApiAlert(BaseModel):
 
         Parameters
         ----------
-        api_client : BabamulAPIClient
+        api_client : APIClient
             An authenticated Babamul API client instance.
 
         Returns
