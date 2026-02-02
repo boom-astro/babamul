@@ -10,12 +10,12 @@ from .cutout_utils import plot_cutouts
 from .raw_models import (
     EnrichedLsstAlert,
     EnrichedZtfAlert,
+    LsstAlertProperties,
     LsstCandidate,
     LsstPhotometry,
-    LsstAlertProperties,
+    ZtfAlertProperties,
     ZtfCandidate,
     ZtfPhotometry,
-    ZtfAlertProperties,
 )
 
 # --- API response models ---
@@ -155,20 +155,22 @@ class ZtfAlert(EnrichedZtfAlert):
         """
         self.plot_cutouts(orientation=orientation, show=True)
 
-    def fetch_cutouts(self, api_client) -> AlertCutouts:
-        """Fetch cutouts for this alert using the provided API client.
+    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+        """Fetch cutouts for this alert from the API.
 
         Parameters
         ----------
-        api_client : APIClient
-            An authenticated Babamul API client instance.
+        token : str | None
+            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
         AlertCutouts
             Cutout images (science, template, difference) as bytes.
         """
-        return api_client.get_cutouts("ztf", self.candid)
+        from .api import get_cutouts
+
+        return get_cutouts("ztf", self.candid, token=token)
 
 
 ZtfCandidate.datetime = property(
@@ -278,20 +280,22 @@ class LsstAlert(EnrichedLsstAlert):
             use_rotation=use_rotation, orientation=orientation, show=True
         )
 
-    def fetch_cutouts(self, api_client) -> AlertCutouts:
-        """Fetch cutouts for this alert using the provided API client.
+    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+        """Fetch cutouts for this alert from the API.
 
         Parameters
         ----------
-        api_client : APIClient
-            An authenticated Babamul API client instance.
+        token : str | None
+            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
         AlertCutouts
             Cutout images (science, template, difference) as bytes.
         """
-        return api_client.get_cutouts("lsst", self.candid)
+        from .api import get_cutouts
+
+        return get_cutouts("lsst", self.candid, token=token)
 
 
 LsstCandidate.datetime = property(
@@ -311,35 +315,39 @@ class ZtfApiAlert(BaseModel):
     properties: ZtfAlertProperties
     classifications: dict[str, float] | None = None
 
-    def fetch_object(self, api_client) -> ZtfAlert:
-        """Fetch the full ZTF alert object using the provided API client.
+    def fetch_object(self, *, token: str | None = None) -> ZtfAlert:
+        """Fetch the full ZTF alert object from the API.
 
         Parameters
         ----------
-        api_client : ZtfApiClient
-            An authenticated Babamul API client instance.
+        token : str | None
+            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
         ZtfAlert
             Full object with all available data.
         """
-        return api_client.get_object("ztf", self.objectId)
+        from .api import get_object
 
-    def fetch_cutouts(self, api_client) -> AlertCutouts:
-        """Fetch cutouts for this alert using the provided API client.
+        return get_object("ztf", self.objectId, token=token)
+
+    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+        """Fetch cutouts for this alert from the API.
 
         Parameters
         ----------
-        api_client : APIClient
-            An authenticated Babamul API client instance.
+        token : str | None
+            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
         AlertCutouts
             Cutout images (science, template, difference) as bytes.
         """
-        return api_client.get_cutouts("ztf", self.candid)
+        from .api import get_cutouts
+
+        return get_cutouts("ztf", self.candid, token=token)
 
 # --- LSST API models ---
 
@@ -350,32 +358,36 @@ class LsstApiAlert(BaseModel):
     properties: LsstAlertProperties
     classifications: dict[str, float] | None = None
 
-    def fetch_object(self, api_client) -> LsstAlert:
-        """Fetch the full LSST alert object using the provided API client.
+    def fetch_object(self, *, token: str | None = None) -> LsstAlert:
+        """Fetch the full LSST alert object from the API.
 
         Parameters
         ----------
-        api_client : LsstApiClient
-            An authenticated Babamul API client instance.
+        token : str | None
+            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
         LsstAlert
             Full object with all available data.
         """
-        return api_client.get_object("lsst", self.objectId)
+        from .api import get_object
 
-    def fetch_cutouts(self, api_client) ->  AlertCutouts:
-        """Fetch cutouts for this alert using the provided API client.
+        return get_object("lsst", self.objectId, token=token)
+
+    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+        """Fetch cutouts for this alert from the API.
 
         Parameters
         ----------
-        api_client : APIClient
-            An authenticated Babamul API client instance.
+        token : str | None
+            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
         AlertCutouts
             Cutout images (science, template, difference) as bytes.
         """
-        return api_client.get_cutouts("lsst", self.candid)
+        from .api import get_cutouts
+
+        return get_cutouts("lsst", self.candid, token=token)
