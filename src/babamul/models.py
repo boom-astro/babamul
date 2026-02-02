@@ -24,9 +24,9 @@ class AlertCutouts(BaseModel):
     """Cutout images for an alert."""
 
     candid: int
-    cutoutScience: bytes | None = None
-    cutoutTemplate: bytes | None = None
-    cutoutDifference: bytes | None = None
+    cutoutScience: bytes
+    cutoutTemplate: bytes
+    cutoutDifference: bytes
 
     model_config = {"arbitrary_types_allowed": True}
 
