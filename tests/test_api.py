@@ -48,10 +48,10 @@ def _get_test_object(client, survey, object_id):
 @pytest.fixture(scope="session")
 def authed_client():
     """Session-scoped authenticated APIClient."""
-    email = os.environ.get("EMAIL")
-    password = os.environ.get("PASSWORD")
+    email = os.environ.get("BABAMUL_API_EMAIL")
+    password = os.environ.get("BABAMUL_API_PASSWORD")
     if not email or not password:
-        pytest.skip("EMAIL and PASSWORD environment variables must be set for authenticated tests")
+        pytest.skip("BABAMUL_API_EMAIL and BABAMUL_API_PASSWORD environment variables must be set for authenticated tests")
     client = APIClient()
     client.login(email, password)
     yield client
