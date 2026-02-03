@@ -20,6 +20,8 @@ def get_base_url() -> str:
     Returns the URL for "local" or "production" (default).
     """
     env = os.getenv("BABAMUL_ENV", "production").lower()
+    if env not in API_URLS:
+        raise ValueError(f"Invalid BABAMUL_ENV value: {env}. Must be one of {list(API_URLS.keys())}.")
     return API_URLS[env]
 
 
