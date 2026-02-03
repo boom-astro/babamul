@@ -260,14 +260,14 @@ class TestAPIClientObjects:
     def test_get_ztf_object_from_alert(self, ztf_object):
         alerts = get_alerts("ztf", object_id=ztf_object.id)
         alert = alerts[0]
-        obj = alert.fetch_object()
+        obj = alert.fetch_full_object()
         assert isinstance(obj, ZtfAlert)
         assert obj.objectId == ztf_object.id
 
     def test_get_lsst_object_from_alert(self, lsst_object):
         alerts = get_alerts("lsst", object_id=lsst_object.id)
         alert = alerts[0]
-        obj = alert.fetch_object()
+        obj = alert.fetch_full_object()
         assert isinstance(obj, LsstAlert)
         assert obj.objectId == lsst_object.id
 

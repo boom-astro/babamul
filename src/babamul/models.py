@@ -295,8 +295,8 @@ class ZtfApiAlert(BaseModel):
     properties: ZtfAlertProperties
     classifications: dict[str, float] | None = None
 
-    def fetch_object(self) -> ZtfAlert:
-        """Fetch the full ZTF alert object from the API.
+    def fetch_full_object(self) -> ZtfAlert:
+        """Fetch the full ZTF object from the API.
 
         Returns
         -------
@@ -328,8 +328,8 @@ class LsstApiAlert(BaseModel):
     properties: LsstAlertProperties
     classifications: dict[str, float] | None = None
 
-    def fetch_object(self) -> LsstAlert:
-        """Fetch the full LSST alert object from the API.
+    def fetch_full_object(self) -> LsstAlert:
+        """Fetch the full LSST object from the API.
 
         Returns
         -------
