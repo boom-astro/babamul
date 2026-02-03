@@ -34,7 +34,7 @@ from babamul.models import (
 dotenv.load_dotenv()
 
 if not os.environ.get("BABAMUL_API_TOKEN"):
-    pytest.skip("BABAMUL_API_TOKEN environment variable must be set for API tests", allow_module_level = True)
+    pytest.skip("BABAMUL_API_TOKEN environment variable must be set for API tests", allow_module_level=True)
 
 
 # ---- Fixtures ----
@@ -50,8 +50,9 @@ class _TestObject:
 def _get_test_object(survey, object_id):
     if object_id is None:
         pytest.skip(f"{survey.upper()}_OBJECT_ID environment variable not set")
-    obj = get_object(survey, object_id)
-    if obj is None:
+    try:
+        obj = get_object(survey, object_id)
+    except (APINotFoundError, APIError):
         pytest.skip(f"Object {object_id} not found in survey {survey}")
     if obj.candidate and obj.candidate.ra is not None and obj.candidate.dec is not None:
         return _TestObject(object_id, obj.candidate.ra, obj.candidate.dec)
