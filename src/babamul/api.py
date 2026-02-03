@@ -13,7 +13,6 @@ from .config import get_base_url
 from .exceptions import APIAuthenticationError, APIError, APINotFoundError
 from .models import (
     AlertCutouts,
-    KafkaCredential,
     LsstAlert,
     LsstApiAlert,
     ObjectSearchResult,
@@ -322,72 +321,3 @@ def get_profile(*, token: str | None = None) -> UserProfile:
     response = _request("GET", "/profile", token=token)
     data = response.get("data", response)
     return UserProfile.model_validate(data)
-
-
-def create_kafka_credential(
-    name: str, *, token: str | None = None
-) -> KafkaCredential:
-    """Create a new Kafka credential for stream access.
-
-    Parameters
-    ----------
-    name : str
-        Name for the credential.
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
-
-    Returns
-    -------
-    KafkaCredential
-        The created credential with username and password.
-    """
-    response = _request(
-        "POST", "/kafka-credentials", token=token, json={"name": name}
-    )
-    cred = response.get("credential", response.get("data", response))
-    return KafkaCredential.model_validate(cred)
-
-
-def list_kafka_credentials(
-    *, token: str | None = None
-) -> list[KafkaCredential]:
-    """List all Kafka credentials for the current user.
-
-    Parameters
-    ----------
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
-
-    Returns
-    -------
-    list[KafkaCredential]
-        List of Kafka credentials.
-    """
-    response = _request("GET", "/kafka-credentials", token=token)
-    data = response.get("data", response)
-    if isinstance(data, list):
-        return [KafkaCredential.model_validate(c) for c in data]
-    return []
-
-
-def delete_kafka_credential(
-    credential_id: str, *, token: str | None = None
-) -> bool:
-    """Delete a Kafka credential.
-
-    Parameters
-    ----------
-    credential_id : str
-        ID of the credential to delete.
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
-
-    Returns
-    -------
-    bool
-        True if deletion was successful.
-    """
-    response = _request(
-        "DELETE", f"/kafka-credentials/{credential_id}", token=token
-    )
-    return bool(response.get("deleted", False))

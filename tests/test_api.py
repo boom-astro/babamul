@@ -7,13 +7,10 @@ import dotenv
 import pytest
 
 from babamul.api import (
-    create_kafka_credential,
-    delete_kafka_credential,
     get_alerts,
     get_cutouts,
     get_object,
     get_profile,
-    list_kafka_credentials,
     search_objects,
 )
 from babamul.consumer import AlertConsumer
@@ -24,7 +21,6 @@ from babamul.exceptions import (
 )
 from babamul.models import (
     AlertCutouts,
-    KafkaCredential,
     ObjectSearchResult,
     UserProfile,
     ZtfAlert,
@@ -91,28 +87,6 @@ class TestAPIClientProfile:
         assert isinstance(profile, UserProfile)
         assert profile.email
         assert profile.username
-
-
-# ---- Kafka credentials tests ----
-
-
-class TestAPIClientKafkaCredentials:
-    def test_list_kafka_credentials(self):
-        creds = list_kafka_credentials()
-        assert isinstance(creds, list)
-        for c in creds:
-            assert isinstance(c, KafkaCredential)
-
-    def test_create_and_delete_kafka_credential(self):
-        cred = create_kafka_credential("test-cred-integration")
-        try:
-            assert isinstance(cred, KafkaCredential)
-            assert cred.name == "test-cred-integration"
-            assert cred.kafka_username
-            assert cred.kafka_password
-        finally:
-            deleted = delete_kafka_credential(cred.id)
-            assert deleted is True
 
 
 # ---- Alert tests ----
@@ -340,26 +314,10 @@ class TestAPIClientSearch:
 
 
 class TestFetchCutoutsFromKafkaAlert:
-    @pytest.fixture(scope="class")
-    def kafka_cred(self):
-        """Create a temporary Kafka credential for this test class."""
-        cred = create_kafka_credential("test-cred-integration")
-        assert isinstance(cred, KafkaCredential)
-        assert cred.kafka_username
-        assert cred.kafka_password
-
-        try:
-            yield cred
-        finally:
-            deleted = delete_kafka_credential(cred.id)
-            assert deleted is True
-
-    def test_fetch_ztf_cutouts_from_kafka_alert(self, kafka_cred):
+    def test_fetch_ztf_cutouts_from_kafka_alert(self):
         ztf_consumer = AlertConsumer(
             topics="babamul.ztf.no-lsst-match.hosted",
-            offset="earliest",
-            username=kafka_cred.kafka_username,
-            password=kafka_cred.kafka_password,
+            offset="earliest"
         )
         for alert in ztf_consumer:
             cutouts = alert.fetch_cutouts()
@@ -372,12 +330,10 @@ class TestFetchCutoutsFromKafkaAlert:
 
         ztf_consumer.close()
 
-    def test_fetch_lsst_cutouts_from_kafka_alert(self, kafka_cred):
+    def test_fetch_lsst_cutouts_from_kafka_alert(self):
         lsst_consumer = AlertConsumer(
             topics="babamul.lsst.no-ztf-match.hostless",
             offset="earliest",
-            username=kafka_cred.kafka_username,
-            password=kafka_cred.kafka_password,
         )
         for alert in lsst_consumer:
             cutouts = alert.fetch_cutouts()

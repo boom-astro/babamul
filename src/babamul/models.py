@@ -40,16 +40,6 @@ class ObjectSearchResult(BaseModel):
     survey: str
 
 
-class KafkaCredential(BaseModel):
-    """Kafka credential information."""
-
-    id: str
-    name: str
-    kafka_username: str
-    kafka_password: str | None = None
-    created_at: int
-
-
 class UserProfile(BaseModel):
     """User profile information."""
 

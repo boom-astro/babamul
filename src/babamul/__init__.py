@@ -4,13 +4,10 @@ streams and interacting with the Babamul API.
 
 from . import api, topics
 from .api import (
-    create_kafka_credential,
-    delete_kafka_credential,
     get_alerts,
     get_cutouts,
     get_object,
     get_profile,
-    list_kafka_credentials,
     search_objects,
 )
 from .consumer import AlertConsumer
@@ -50,9 +47,6 @@ __all__ = [
     "get_object",
     "get_profile",
     "search_objects",
-    "create_kafka_credential",
-    "list_kafka_credentials",
-    "delete_kafka_credential",
     # Models
     "ZtfAlert",
     "ZtfPhotometry",
