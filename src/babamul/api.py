@@ -321,12 +321,7 @@ def get_profile(*, token: str | None = None) -> UserProfile:
     """
     response = _request("GET", "/profile", token=token)
     data = response.get("data", response)
-    return UserProfile(
-        id=data.get("_id", data.get("id", "")),
-        username=data["username"],
-        email=data["email"],
-        created_at=data["created_at"],
-    )
+    return UserProfile.model_validate(data)
 
 
 def create_kafka_credential(
@@ -350,13 +345,7 @@ def create_kafka_credential(
         "POST", "/kafka-credentials", token=token, json={"name": name}
     )
     cred = response.get("credential", response.get("data", response))
-    return KafkaCredential(
-        id=cred["id"],
-        name=cred["name"],
-        kafka_username=cred["kafka_username"],
-        kafka_password=cred.get("kafka_password"),
-        created_at=cred["created_at"],
-    )
+    return KafkaCredential.model_validate(cred)
 
 
 def list_kafka_credentials(
@@ -377,16 +366,7 @@ def list_kafka_credentials(
     response = _request("GET", "/kafka-credentials", token=token)
     data = response.get("data", response)
     if isinstance(data, list):
-        return [
-            KafkaCredential(
-                id=c["id"],
-                name=c["name"],
-                kafka_username=c["kafka_username"],
-                kafka_password=c.get("kafka_password"),
-                created_at=c["created_at"],
-            )
-            for c in data
-        ]
+        return [KafkaCredential.model_validate(c) for c in data]
     return []
 
 

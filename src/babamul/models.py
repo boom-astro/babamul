@@ -4,7 +4,7 @@ from datetime import timezone
 
 import matplotlib.pyplot as plt
 from astropy.time import Time
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 
 from .cutout_utils import plot_cutouts
 from .raw_models import (
@@ -53,7 +53,7 @@ class KafkaCredential(BaseModel):
 class UserProfile(BaseModel):
     """User profile information."""
 
-    id: str
+    id: str = Field(..., alias=AliasChoices("id", "_id"))
     username: str
     email: str
     created_at: int
