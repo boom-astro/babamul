@@ -145,13 +145,8 @@ class ZtfAlert(EnrichedZtfAlert):
         """
         self.plot_cutouts(orientation=orientation, show=True)
 
-    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+    def fetch_cutouts(self) -> AlertCutouts:
         """Fetch cutouts for this alert from the API.
-
-        Parameters
-        ----------
-        token : str | None
-            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
@@ -160,7 +155,7 @@ class ZtfAlert(EnrichedZtfAlert):
         """
         from .api import get_cutouts
 
-        return get_cutouts("ztf", self.candid, token=token)
+        return get_cutouts("ztf", self.candid)
 
 
 ZtfCandidate.datetime = property(
@@ -270,13 +265,8 @@ class LsstAlert(EnrichedLsstAlert):
             use_rotation=use_rotation, orientation=orientation, show=True
         )
 
-    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+    def fetch_cutouts(self) -> AlertCutouts:
         """Fetch cutouts for this alert from the API.
-
-        Parameters
-        ----------
-        token : str | None
-            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
@@ -285,7 +275,7 @@ class LsstAlert(EnrichedLsstAlert):
         """
         from .api import get_cutouts
 
-        return get_cutouts("lsst", self.candid, token=token)
+        return get_cutouts("lsst", self.candid)
 
 
 LsstCandidate.datetime = property(
@@ -305,13 +295,8 @@ class ZtfApiAlert(BaseModel):
     properties: ZtfAlertProperties
     classifications: dict[str, float] | None = None
 
-    def fetch_object(self, *, token: str | None = None) -> ZtfAlert:
+    def fetch_object(self) -> ZtfAlert:
         """Fetch the full ZTF alert object from the API.
-
-        Parameters
-        ----------
-        token : str | None
-            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
@@ -320,15 +305,10 @@ class ZtfApiAlert(BaseModel):
         """
         from .api import get_object
 
-        return get_object("ztf", self.objectId, token=token)
+        return get_object("ztf", self.objectId)
 
-    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+    def fetch_cutouts(self) -> AlertCutouts:
         """Fetch cutouts for this alert from the API.
-
-        Parameters
-        ----------
-        token : str | None
-            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
@@ -337,7 +317,7 @@ class ZtfApiAlert(BaseModel):
         """
         from .api import get_cutouts
 
-        return get_cutouts("ztf", self.candid, token=token)
+        return get_cutouts("ztf", self.candid)
 
 # --- LSST API models ---
 
@@ -348,13 +328,8 @@ class LsstApiAlert(BaseModel):
     properties: LsstAlertProperties
     classifications: dict[str, float] | None = None
 
-    def fetch_object(self, *, token: str | None = None) -> LsstAlert:
+    def fetch_object(self) -> LsstAlert:
         """Fetch the full LSST alert object from the API.
-
-        Parameters
-        ----------
-        token : str | None
-            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
@@ -363,15 +338,10 @@ class LsstApiAlert(BaseModel):
         """
         from .api import get_object
 
-        return get_object("lsst", self.objectId, token=token)
+        return get_object("lsst", self.objectId)
 
-    def fetch_cutouts(self, *, token: str | None = None) -> AlertCutouts:
+    def fetch_cutouts(self) -> AlertCutouts:
         """Fetch cutouts for this alert from the API.
-
-        Parameters
-        ----------
-        token : str | None
-            Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
         Returns
         -------
@@ -380,4 +350,4 @@ class LsstApiAlert(BaseModel):
         """
         from .api import get_cutouts
 
-        return get_cutouts("lsst", self.candid, token=token)
+        return get_cutouts("lsst", self.candid)

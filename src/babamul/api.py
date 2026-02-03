@@ -26,28 +26,27 @@ logger = logging.getLogger(__name__)
 Survey = Literal["ztf", "lsst"]
 
 
-def _resolve_token(token: str | None = None) -> str:
-    """Return *token* if given, else fall back to ``BABAMUL_API_TOKEN`` env var.
+def _resolve_token() -> str:
+    """Resolve the API token from environment variable.
 
     Raises
     ------
     APIAuthenticationError
-        If neither source provides a token.
+        If no token is found.
     """
-    resolved = token or os.environ.get("BABAMUL_API_TOKEN")
-    if not resolved:
+    token = os.environ.get("BABAMUL_API_TOKEN")
+    if not token:
         raise APIAuthenticationError(
-            "No API token provided. Pass token= or set BABAMUL_API_TOKEN.",
+            "No API token provided. Set the BABAMUL_API_TOKEN environment variable.",
             status_code=401,
         )
-    return resolved
+    return token
 
 
 def _request(
     method: str,
     endpoint: str,
     *,
-    token: str | None = None,
     params: dict[str, Any] | None = None,
     json: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -59,8 +58,6 @@ def _request(
         HTTP method (GET, POST, DELETE, …).
     endpoint : str
         API endpoint path (e.g. ``/profile``).
-    token : str | None
-        Bearer token.  Resolved via :func:`_resolve_token`.
     params : dict | None
         Query parameters.
     json : dict | None
@@ -80,11 +77,10 @@ def _request(
     APIError
         For other API errors.
     """
-    resolved_token = _resolve_token(token)
     url = f"{get_base_url()}{endpoint}"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {resolved_token}",
+        "Authorization": f"Bearer {_resolve_token()}",
     }
 
     try:
@@ -126,7 +122,6 @@ def _request(
 def get_alerts(
     survey: Survey,
     *,
-    token: str | None = None,
     object_id: str | None = None,
     ra: float | None = None,
     dec: float | None = None,
@@ -144,8 +139,6 @@ def get_alerts(
     ----------
     survey : Survey
         The survey to query ("ztf" or "lsst").
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
     object_id : str | None
         Filter by object ID.
     ra : float | None
@@ -197,13 +190,13 @@ def get_alerts(
         }.items() if value is not None
     }
 
-    response = _request("GET", f"/surveys/{survey}/alerts", token=token, params=params)
+    response = _request("GET", f"/surveys/{survey}/alerts", params=params)
     data = response.get("data", [])
     alert_model = ZtfApiAlert if survey == "ztf" else LsstApiAlert
     return [alert_model.model_validate(alert) for alert in data]
 
 
-def get_cutouts(survey: Survey, candid: int, *, token: str | None = None) -> AlertCutouts:
+def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     """Get cutout images for an alert.
 
     Parameters
@@ -212,17 +205,13 @@ def get_cutouts(survey: Survey, candid: int, *, token: str | None = None) -> Ale
         Survey ("ztf" or "lsst").
     candid : int
         Candidate ID of the alert.
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
     Returns
     -------
     AlertCutouts
         Cutout images (science, template, difference) as bytes.
     """
-    response = _request(
-        "GET", f"/surveys/{survey}/alerts/{candid}/cutouts", token=token
-    )
+    response = _request("GET", f"/surveys/{survey}/alerts/{candid}/cutouts")
     data = response.get("data", response)
     return AlertCutouts(
         candid=data["candid"],
@@ -238,9 +227,7 @@ def get_cutouts(survey: Survey, candid: int, *, token: str | None = None) -> Ale
     )
 
 
-def get_object(
-    survey: Survey, object_id: str, *, token: str | None = None
-) -> ZtfAlert | LsstAlert:
+def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
     """Get full object details including history and cutouts.
     This returns the complete object with:
     - Candidate information
@@ -254,17 +241,13 @@ def get_object(
         Survey ("ztf" or "lsst").
     object_id : str
         Object ID.
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
     Returns
     -------
     ZtfAlert | LsstAlert
         Full object with all available data.
     """
-    response = _request(
-        "GET", f"/surveys/{survey}/objects/{object_id}", token=token
-    )
+    response = _request("GET", f"/surveys/{survey}/objects/{object_id}")
     data = response.get("data", response)
 
     for key in ["cutoutScience", "cutoutTemplate", "cutoutDifference"]:
@@ -276,9 +259,7 @@ def get_object(
     return LsstAlert.model_validate(data)
 
 
-def search_objects(
-    object_id: str, limit: int = 10, *, token: str | None = None
-) -> list[ObjectSearchResult]:
+def search_objects(object_id: str, limit: int = 10) -> list[ObjectSearchResult]:
     """Search for objects by partial ID.
 
     Parameters
@@ -287,8 +268,6 @@ def search_objects(
         Partial object ID to search for.
     limit : int
         Maximum number of results (1–100, default 10).
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
     Returns
     -------
@@ -298,26 +277,20 @@ def search_objects(
     response = _request(
         "GET",
         "/objects",
-        token=token,
         params={"object_id": object_id, "limit": min(max(1, limit), 100)},
     )
     data = response.get("data", [])
     return [ObjectSearchResult.model_validate(obj) for obj in data]
 
 
-def get_profile(*, token: str | None = None) -> UserProfile:
+def get_profile() -> UserProfile:
     """Get the current user's profile.
-
-    Parameters
-    ----------
-    token : str | None
-        Bearer token (falls back to ``BABAMUL_API_TOKEN``).
 
     Returns
     -------
     UserProfile
         User profile information.
     """
-    response = _request("GET", "/profile", token=token)
+    response = _request("GET", "/profile")
     data = response.get("data", response)
     return UserProfile.model_validate(data)
