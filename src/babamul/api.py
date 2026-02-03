@@ -173,7 +173,7 @@ def get_alerts(
     list[ZtfApiAlert | LsstApiAlert]
         List of alerts matching the query parameters.
     """
-    if object_id and (ra or dec or radius_arcsec):
+    if object_id and (ra is not None or dec is not None or radius_arcsec is not None):
         logger.warning(
             "Both object_id and (ra, dec, radius_arcsec) provided; "
             "Only object_id will be used."
