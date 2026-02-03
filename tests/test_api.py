@@ -198,9 +198,9 @@ class TestAPIClientCutouts:
         assert isinstance(cutouts, AlertCutouts)
         assert cutouts.candid == candid
         assert (
-            cutouts.cutoutScience is not None
-            or cutouts.cutoutTemplate is not None
-            or cutouts.cutoutDifference is not None
+            cutouts.cutoutScience != b""
+            or cutouts.cutoutTemplate != b""
+            or cutouts.cutoutDifference != b""
         )
 
     def test_get_lsst_cutouts(self, lsst_object):
@@ -210,9 +210,9 @@ class TestAPIClientCutouts:
         assert isinstance(cutouts, AlertCutouts)
         assert cutouts.candid == candid
         assert (
-            cutouts.cutoutScience is not None
-            or cutouts.cutoutTemplate is not None
-            or cutouts.cutoutDifference is not None
+            cutouts.cutoutScience != b""
+            or cutouts.cutoutTemplate != b""
+            or cutouts.cutoutDifference != b""
         )
 
     def test_get_ztf_cutouts_for_alert(self, ztf_object):
