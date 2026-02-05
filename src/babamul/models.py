@@ -4,7 +4,7 @@ from datetime import timezone
 
 import matplotlib.pyplot as plt
 from astropy.time import Time
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, computed_field
 
 from .cutout_utils import plot_cutouts
 from .raw_models import (
@@ -19,6 +19,7 @@ from .raw_models import (
 )
 
 # --- API response models ---
+
 
 class AlertCutouts(BaseModel):
     """Cutout images for an alert."""
@@ -83,7 +84,9 @@ class ZtfAlert(EnrichedZtfAlert):
 
         return photometry
 
-    # let's add a `survey` property for convenience
+    # Let's add a `survey` property for convenience, and use `computed_field`
+    # so it shows up in the schema and model dumps
+    @computed_field
     @property
     def survey(self) -> str:
         return "ZTF"
@@ -196,6 +199,7 @@ class LsstAlert(EnrichedLsstAlert):
         return photometry
 
     # let's add a `survey` property for convenience
+    @computed_field
     @property
     def survey(self) -> str:
         return "LSST"
@@ -288,6 +292,7 @@ LsstPhotometry.datetime = property(
 
 # --- ZTF API models ---
 
+
 class ZtfApiAlert(BaseModel):
     candid: int
     objectId: str
@@ -319,7 +324,9 @@ class ZtfApiAlert(BaseModel):
 
         return get_cutouts("ztf", self.candid)
 
+
 # --- LSST API models ---
+
 
 class LsstApiAlert(BaseModel):
     candid: int
