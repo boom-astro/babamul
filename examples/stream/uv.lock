@@ -179,6 +179,7 @@ dependencies = [
     { name = "babamul" },
     { name = "dotenv" },
     { name = "duckdb" },
+    { name = "ipywidgets" },
     { name = "jupyter" },
     { name = "polars" },
 ]
@@ -188,6 +189,7 @@ requires-dist = [
     { name = "babamul" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "duckdb", specifier = ">=1.4.4" },
+    { name = "ipywidgets", specifier = ">=8.1.8" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "polars", specifier = ">=1.37.1" },
 ]
