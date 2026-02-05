@@ -1,115 +1,296 @@
-"""A Babamul API client."""
+"""REST API client for Babamul."""
+
+from __future__ import annotations
 
 import os
-import warnings
-from functools import partial
-from typing import Literal
+import base64
+import logging
+from typing import Any, Literal
 
-import requests
-from requests.exceptions import HTTPError
+import httpx
+
+from .config import get_base_url
+from .exceptions import APIAuthenticationError, APIError, APINotFoundError
+from .models import (
+    AlertCutouts,
+    LsstAlert,
+    LsstApiAlert,
+    ObjectSearchResult,
+    UserProfile,
+    ZtfAlert,
+    ZtfApiAlert,
+)
+
+logger = logging.getLogger(__name__)
+
+Survey = Literal["ztf", "lsst"]
 
 
-def get_base_url() -> str:
-    """Get the API base URL."""
-    env = os.getenv("BABAMUL_ENV", "production").lower()
-    urls = {
-        "local": "http://localhost:4000",
-        "production": "https://babamul.caltech.edu/api/babamul",
-    }
-    return urls[env]
+def _resolve_token() -> str:
+    """Resolve the API token from environment variable.
 
-
-def get_token() -> str | None:
-    """Get an API token."""
-    token = os.getenv("BABAMUL_TOKEN")
-    if token is None:
-        warnings.warn("No Babamul token found", stacklevel=1)
+    Raises
+    ------
+    APIAuthenticationError
+        If no token is found.
+    """
+    token = os.environ.get("BABAMUL_API_TOKEN")
+    if not token:
+        raise APIAuthenticationError(
+            "No API token provided. Set the BABAMUL_API_TOKEN environment variable.",
+            status_code=401,
+        )
     return token
 
 
-def get_headers(headers: dict | None = None, auth: bool = True) -> dict:
-    base_headers = {"Authorization": f"Bearer {get_token()}"} if auth else {}
-    if headers is not None:
-        return base_headers | headers
-    else:
-        return base_headers
-
-
 def _request(
-    kind: Literal["get", "post", "put", "patch", "delete"],
-    path: str,
-    params: dict | None = None,
-    json: dict | None = None,
-    data: dict | None = None,
-    headers: dict | None = None,
-    as_json=True,
-    auth: bool = True,
-    **kwargs,
-):
-    func = getattr(requests, kind)
-    resp = func(
-        get_base_url() + path,
-        params=params,
-        json=json,
-        data=data,
-        headers=get_headers(headers, auth=auth),
-        **kwargs,
-    )
-    try:
-        resp.raise_for_status()
-    except HTTPError as e:
-        try:
-            detail = resp.json()["detail"]
-        except Exception:
-            raise e from e
-        raise HTTPError(f"{resp.status_code}: {detail}") from e
-    if as_json:
-        return resp.json()
-    else:
-        return resp
-
-
-get = partial(_request, "get")
-post = partial(_request, "post")
-patch = partial(_request, "patch")
-put = partial(_request, "put")
-delete = partial(_request, "delete")
-
-
-def get_current_user() -> dict:
-    return get("/profile")
-
-
-def get_alerts(
-    survey: Literal["ztf", "lsst"],
-    ra: float | None = None,
-    dec: float | None = None,
-    radius_arcsec: float | None = None,
-) -> list[dict]:
-    """Get recent alerts from the Babamul API.
+    method: str,
+    endpoint: str,
+    *,
+    params: dict[str, Any] | None = None,
+    json: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Make an authenticated HTTP request to the Babamul API.
 
     Parameters
     ----------
-    survey : {'ztf', 'lsst'}
-        The survey to get alerts from.
-    ra : float, optional
-        Right ascension in degrees.
-    dec : float, optional
-        Declination in degrees.
-    radius_arcsec : float, optional
-        Search radius in arcseconds.
+    method : str
+        HTTP method (GET, POST, DELETE, …).
+    endpoint : str
+        API endpoint path (e.g. ``/profile``).
+    params : dict | None
+        Query parameters.
+    json : dict | None
+        JSON body for POST requests.
 
     Returns
     -------
-    list of dict
-        A list of alert dictionaries.
+    dict
+        Response JSON data.
+
+    Raises
+    ------
+    APIAuthenticationError
+        If authentication is required but no token is set, or auth fails.
+    APINotFoundError
+        If the requested resource is not found.
+    APIError
+        For other API errors.
     """
-    path = f"/surveys/{survey}/alerts"
-    params = {}
-    if ra is not None:
-        params["ra"] = ra
-    if dec is not None:
-        params["dec"] = dec
-    if radius_arcsec is not None:
-        params["radius_arcsec"] = radius_arcsec
-    return get(path, params=params)["data"]
+    url = f"{get_base_url()}{endpoint}"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {_resolve_token()}",
+    }
+
+    try:
+        response = httpx.request(
+            method,
+            url,
+            params=params,
+            json=json,
+            headers=headers,
+            timeout=30.0,
+        )
+    except httpx.RequestError as e:
+        raise APIError(f"Request failed: {e}") from e
+
+    if response.status_code == 401:
+        raise APIAuthenticationError(
+            "Authentication failed. Check your credentials.",
+            status_code=401,
+        )
+    if response.status_code == 404:
+        raise APINotFoundError(
+            f"Resource not found: {endpoint}",
+            status_code=404,
+        )
+    if response.status_code >= 400:
+        try:
+            error_data = response.json()
+            message = error_data.get("message", response.text)
+        except Exception:
+            message = response.text
+        raise APIError(
+            f"API error ({response.status_code}): {message}",
+            status_code=response.status_code,
+        )
+
+    return response.json()
+
+
+def get_alerts(
+    survey: Survey,
+    *,
+    object_id: str | None = None,
+    ra: float | None = None,
+    dec: float | None = None,
+    radius_arcsec: float | None = None,
+    start_jd: float | None = None,
+    end_jd: float | None = None,
+    min_magpsf: float | None = None,
+    max_magpsf: float | None = None,
+    min_drb: float | None = None,
+    max_drb: float | None = None,
+) -> list[ZtfApiAlert | LsstApiAlert]:
+    """Query alerts from the API.
+
+    Parameters
+    ----------
+    survey : Survey
+        The survey to query ("ztf" or "lsst").
+    object_id : str | None
+        Filter by object ID.
+    ra : float | None
+        Right Ascension in degrees (requires *dec* and *radius_arcsec*).
+    dec : float | None
+        Declination in degrees (requires *ra* and *radius_arcsec*).
+    radius_arcsec : float | None
+        Cone search radius in arcseconds (max 600).
+    start_jd : float | None
+        Start Julian Date filter.
+    end_jd : float | None
+        End Julian Date filter.
+    min_magpsf : float | None
+        Minimum PSF magnitude filter.
+    max_magpsf : float | None
+        Maximum PSF magnitude filter.
+    min_drb : float | None
+        Minimum DRB (reliability) score filter.
+    max_drb : float | None
+        Maximum DRB score filter.
+
+    Returns
+    -------
+    list[ZtfApiAlert | LsstApiAlert]
+        List of alerts matching the query parameters.
+    """
+    if object_id and (ra is not None or dec is not None or radius_arcsec is not None):
+        logger.warning(
+            "Both object_id and (ra, dec, radius_arcsec) provided; "
+            "Only object_id will be used."
+        )
+    elif not object_id and (ra is None or dec is None or radius_arcsec is None):
+        raise ValueError(
+            "Either object_id or (ra, dec, radius_arcsec) must be provided"
+        )
+
+    params = {
+        key: value for key, value in {
+            "object_id": object_id,
+            "ra": ra,
+            "dec": dec,
+            "radius_arcsec": radius_arcsec,
+            "start_jd": start_jd,
+            "end_jd": end_jd,
+            "min_magpsf": min_magpsf,
+            "max_magpsf": max_magpsf,
+            "min_drb": min_drb,
+            "max_drb": max_drb,
+        }.items() if value is not None
+    }
+
+    response = _request("GET", f"/surveys/{survey}/alerts", params=params)
+    data = response.get("data", [])
+    alert_model = ZtfApiAlert if survey == "ztf" else LsstApiAlert
+    return [alert_model.model_validate(alert) for alert in data]
+
+
+def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
+    """Get cutout images for an alert.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ztf" or "lsst").
+    candid : int
+        Candidate ID of the alert.
+
+    Returns
+    -------
+    AlertCutouts
+        Cutout images (science, template, difference) as bytes.
+    """
+    response = _request("GET", f"/surveys/{survey}/alerts/{candid}/cutouts")
+    data = response.get("data", response)
+    return AlertCutouts(
+        candid=data["candid"],
+        cutoutScience=base64.b64decode(data["cutoutScience"])
+        if data.get("cutoutScience")
+        else b"",
+        cutoutTemplate=base64.b64decode(data["cutoutTemplate"])
+        if data.get("cutoutTemplate")
+        else b"",
+        cutoutDifference=base64.b64decode(data["cutoutDifference"])
+        if data.get("cutoutDifference")
+        else b"",
+    )
+
+
+def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
+    """Get full object details including history and cutouts.
+    This returns the complete object with:
+    - Candidate information
+    - Full photometry history (prv_candidates, prv_nondetections, fp_hists)
+    - Cutout images
+    - Cross-matches with other surveys
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ztf" or "lsst").
+    object_id : str
+        Object ID.
+
+    Returns
+    -------
+    ZtfAlert | LsstAlert
+        Full object with all available data.
+    """
+    response = _request("GET", f"/surveys/{survey}/objects/{object_id}")
+    data = response.get("data", response)
+
+    for key in ["cutoutScience", "cutoutTemplate", "cutoutDifference"]:
+        if data.get(key) and isinstance(data[key], str):
+            data[key] = base64.b64decode(data[key])
+
+    if survey == "ztf":
+        return ZtfAlert.model_validate(data)
+    return LsstAlert.model_validate(data)
+
+
+def search_objects(object_id: str, limit: int = 10) -> list[ObjectSearchResult]:
+    """Search for objects by partial ID.
+
+    Parameters
+    ----------
+    object_id : str
+        Partial object ID to search for.
+    limit : int
+        Maximum number of results (1–100, default 10).
+
+    Returns
+    -------
+    list[ObjectSearchResult]
+        List of matching objects with basic info.
+    """
+    response = _request(
+        "GET",
+        "/objects",
+        params={"object_id": object_id, "limit": min(max(1, limit), 100)},
+    )
+    data = response.get("data", [])
+    return [ObjectSearchResult.model_validate(obj) for obj in data]
+
+
+def get_profile() -> UserProfile:
+    """Get the current user's profile.
+
+    Returns
+    -------
+    UserProfile
+        User profile information.
+    """
+    response = _request("GET", "/profile")
+    data = response.get("data", response)
+    return UserProfile.model_validate(data)

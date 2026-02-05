@@ -8,6 +8,22 @@ MAIN_KAFKA_SERVER = (
 )
 BACKUP_KAFKA_SERVERS = "babamul.umn.edu:9093"  # Backup BABAMUL Kafka server in the University of Minnesota
 
+API_URLS = {
+    "local": "http://localhost:4000/babamul",
+    "production": "https://babamul.caltech.edu/api/babamul",
+}
+
+
+def get_base_url() -> str:
+    """Get the API base URL based on the BABAMUL_ENV environment variable.
+
+    Returns the URL for "local" or "production" (default).
+    """
+    env = os.getenv("BABAMUL_ENV", "production").lower()
+    if env not in API_URLS:
+        raise ValueError(f"Invalid BABAMUL_ENV value: {env}. Must be one of {list(API_URLS.keys())}.")
+    return API_URLS[env]
+
 
 @dataclass
 class BabamulConfig:

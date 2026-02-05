@@ -3,8 +3,18 @@ streams and interacting with the Babamul API.
 """
 
 from . import api, topics
+from .api import (
+    get_alerts,
+    get_cutouts,
+    get_object,
+    get_profile,
+    search_objects,
+)
 from .consumer import AlertConsumer
 from .exceptions import (
+    APIAuthenticationError,
+    APIError,
+    APINotFoundError,
     AuthenticationError,
     BabamulConnectionError,
     BabamulError,
@@ -31,6 +41,12 @@ __all__ = [
     "topics",
     # Main classes
     "AlertConsumer",
+    # API functions
+    "get_alerts",
+    "get_cutouts",
+    "get_object",
+    "get_profile",
+    "search_objects",
     # Models
     "ZtfAlert",
     "ZtfPhotometry",
@@ -44,6 +60,9 @@ __all__ = [
     "BabamulConnectionError",
     "DeserializationError",
     "ConfigurationError",
+    "APIError",
+    "APIAuthenticationError",
+    "APINotFoundError",
     # Version
     "__version__",
 ]

@@ -51,7 +51,7 @@ class ZtfCandidate(BaseModel):
     rb: float | None
     ssdistnr: float | None
     ssmagnr: float | None
-    ssnamenr: str | None
+    ssnamenr: str | None = None
     ranr: float
     decnr: float
     sgmag1: float | None
@@ -62,7 +62,7 @@ class ZtfCandidate(BaseModel):
     distpsnr1: float | None
     ndethist: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     ncovhist: int = Field(..., ge=-(2**31), le=(2**31 - 1))
-    jdstarthist: float | None
+    jdstarthist: float | None = None
     scorr: float | None
     sgmag2: float | None
     srmag2: float | None
@@ -100,23 +100,23 @@ class ZtfCandidate(BaseModel):
 
 class ZtfPhotometry(BaseModel):
     jd: float
-    magpsf: float | None
-    sigmapsf: float | None
+    magpsf: float | None = None
+    sigmapsf: float | None = None
     diffmaglim: float
-    psfFlux: float | None
+    psfFlux: float | None = None
     psfFluxErr: float
     band: Band
-    zp: float | None
-    ra: float | None
-    dec: float | None
-    snr: float | None
+    zp: float | None = None
+    ra: float | None = None
+    dec: float | None = None
+    snr: float | None = None
     programid: int = Field(..., ge=-(2**31), le=(2**31 - 1))
 
 
 class BandRateProperties(BaseModel):
     rate: float
     rate_error: float
-    red_chi2: float
+    red_chi2: float | None
     nb_data: int = Field(..., ge=-(2**31), le=(2**31 - 1))
     dt: float
 
@@ -156,7 +156,7 @@ class LsstPhotometry(BaseModel):
     psfFlux: float | None
     psfFluxErr: float
     band: Band
-    zp: float | None
+    zp: float | None = None
     ra: float | None
     dec: float | None
     snr: float | None
@@ -198,12 +198,12 @@ class LsstCandidate(BaseModel):
     diaSourceId: int
     visit: int
     detector: int = Field(..., ge=-(2**31), le=(2**31 - 1))
-    diaObjectId: int | None
-    ssObjectId: int | None
+    diaObjectId: int | None = None
+    ssObjectId: int | None = None
     parentDiaSourceId: int | None
     midpointMjdTai: float
     ra: float
-    raErr: float | None
+    raErr: float | None = None
     dec: float
     decErr: float | None
     centroid_flag: bool | None
@@ -276,8 +276,8 @@ class LsstCandidate(BaseModel):
     snr: float
     magap: float
     sigmagap: float
-    jdstarthist: float | None
-    ndethist: int | None
+    jdstarthist: float | None = None
+    ndethist: int | None = None
 
 
 class LsstAlertProperties(BaseModel):
