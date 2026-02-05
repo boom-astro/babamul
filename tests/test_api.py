@@ -317,8 +317,10 @@ class TestFetchCutoutsFromKafkaAlert:
     def test_fetch_ztf_cutouts_from_kafka_alert(self):
         ztf_consumer = AlertConsumer(
             topics="babamul.ztf.no-lsst-match.hosted",
-            offset="earliest"
+            offset="earliest",
+            timeout=10.0,
         )
+        alert = None
         for alert in ztf_consumer:
             cutouts = alert.fetch_cutouts()
             assert isinstance(cutouts, AlertCutouts)
@@ -329,12 +331,16 @@ class TestFetchCutoutsFromKafkaAlert:
             break
 
         ztf_consumer.close()
+        if alert is None:
+            pytest.skip("No ZTF alerts available in topic (empty or expired)")
 
     def test_fetch_lsst_cutouts_from_kafka_alert(self):
         lsst_consumer = AlertConsumer(
             topics="babamul.lsst.no-ztf-match.hostless",
             offset="earliest",
+            timeout=10.0,
         )
+        alert = None
         for alert in lsst_consumer:
             cutouts = alert.fetch_cutouts()
             assert isinstance(cutouts, AlertCutouts)
@@ -345,3 +351,5 @@ class TestFetchCutoutsFromKafkaAlert:
             break
 
         lsst_consumer.close()
+        if alert is None:
+            pytest.skip("No LSST alerts available in topic (empty or expired)")
