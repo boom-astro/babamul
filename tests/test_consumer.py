@@ -32,7 +32,7 @@ class TestAlertConsumerInit:
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
         with pytest.raises(ValueError,
                 match="Do not use your babamul account email as the username. "
-                      "Please provide the Kafka credentials created on the Babamul website."
+                      "Please provide the Kafka credentials created on the Babamul website profile page."
         ):
             AlertConsumer(username="babamul@email.com", password="pass", topics=["test.topic"])
 
@@ -42,7 +42,7 @@ class TestAlertConsumerInit:
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
         with pytest.raises(ValueError,
                 match="Invalid username format. Kafka username should start with 'babamul-'. "
-                      "Please provide the Kafka credentials created on the Babamul website."
+                      "Please provide the Kafka credentials created on the Babamul website profile page."
         ):
             AlertConsumer(username="username", password="pass", topics=["test.topic"])
 
@@ -59,7 +59,7 @@ class TestAlertConsumerInit:
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
         with pytest.raises(ValueError,
                 match="Do not use your babamul API token as the password. "
-                      "Please provide the Kafka credentials created on the Babamul website."
+                      "Please provide the Kafka credentials created on the Babamul website profile page."
         ):
             AlertConsumer(username="babamul-user", password="bbml_12345", topics=["test.topic"])
 
