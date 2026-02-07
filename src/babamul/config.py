@@ -87,9 +87,22 @@ class BabamulConfig:
             raise ValueError(
                 "Username is required. Provide it directly or set BABAMUL_KAFKA_USERNAME environment variable."
             )
+        if "@" in final_username:
+            raise ValueError(
+                "Do not use your babamul account email as the username. Please provide the Kafka credentials created on the Babamul website."
+            )
+        if not final_username.startswith("babamul-"):
+            raise ValueError(
+                "Invalid username format. Kafka username should start with 'babamul-'. Please provide the Kafka credentials created on the Babamul website."
+            )
+
         if not final_password:
             raise ValueError(
                 "Password is required. Provide it directly or set BABAMUL_KAFKA_PASSWORD environment variable."
+            )
+        if final_password.startswith("bbml_"):
+            raise ValueError(
+                "Do not use your babamul API token as the password. Please provide the Kafka credentials created on the Babamul website."
             )
 
         return cls(

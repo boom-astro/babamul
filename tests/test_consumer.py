@@ -17,20 +17,49 @@ class TestAlertConsumerInit:
         with pytest.raises(ValueError, match="Username is required"):
             AlertConsumer(topics=["test.topic"])
 
+    def test_missing_username(self) -> None:
+        """Test error when password is missing."""
+        with pytest.raises(ValueError, match="Username is required"):
+            AlertConsumer(password="pass", topics=["test.topic"])
+
+    def test_babamul_email_as_username(self) -> None:
+        """Test error when email is used as username."""
+        with pytest.raises( ValueError,
+                match="Do not use your babamul account email as the username. "
+                      "Please provide the Kafka credentials created on the Babamul website."
+        ):
+            AlertConsumer(username="babamul@email.com", password="pass", topics=["test.topic"])
+
+    def test_bad_username_format(self) -> None:
+        """Test error when username does not start with 'babamul-'."""
+        with pytest.raises( ValueError,
+                match="Invalid username format. Kafka username should start with 'babamul-'. "
+                      "Please provide the Kafka credentials created on the Babamul website."
+        ):
+            AlertConsumer(username="username", password="pass", topics=["test.topic"])
+
     def test_missing_password(self) -> None:
         """Test error when password is missing."""
         with pytest.raises(ValueError, match="Password is required"):
-            AlertConsumer(username="user", topics=["test.topic"])
+            AlertConsumer(username="babamul-user", topics=["test.topic"])
+
+    def test_api_token_as_password(self) -> None:
+        """Test error when API token is used as password."""
+        with pytest.raises( ValueError,
+                match="Do not use your babamul API token as the password. "
+                      "Please provide the Kafka credentials created on the Babamul website."
+        ):
+            AlertConsumer(username="babamul-user", password="bbml_12345", topics=["test.topic"])
 
     def test_missing_topic(self) -> None:
         """Test error when topic is missing."""
         with pytest.raises(ValueError, match="At least one topic"):
-            AlertConsumer(username="user", password="pass", topics=[])
+            AlertConsumer(username="babamul-user", password="pass", topics=[])
 
     def test_single_topic(self) -> None:
         """Test initialization with single topic."""
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["test.topic"],
         )
@@ -40,7 +69,7 @@ class TestAlertConsumerInit:
     def test_multiple_topics(self) -> None:
         """Test initialization with multiple topics."""
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["topic1", "topic2"],
         )
@@ -50,27 +79,27 @@ class TestAlertConsumerInit:
     def test_auto_generated_group_id(self) -> None:
         """Test auto-generated group ID."""
         consumer = AlertConsumer(
-            username="testuser",
+            username="babamul-testuser",
             password="pass",
             topics=["test.topic"],
         )
-        assert consumer.group_id == "testuser-client-1"
+        assert consumer.group_id == "babamul-testuser-client-1"
         consumer.close()
 
     def test_custom_group_id(self) -> None:
         """Test custom group ID."""
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["test.topic"],
             group_id="my-custom-group",
         )
-        assert consumer.group_id == "user-my-custom-group"
+        assert consumer.group_id == "babamul-user-my-custom-group"
         consumer.close()
 
     def test_env_credentials(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test loading credentials from environment."""
-        monkeypatch.setenv("BABAMUL_KAFKA_USERNAME", "env_user")
+        monkeypatch.setenv("BABAMUL_KAFKA_USERNAME", "babamul-env-user")
         monkeypatch.setenv("BABAMUL_KAFKA_PASSWORD", "env_pass")
 
         consumer = AlertConsumer(topics=["test.topic"])
@@ -84,7 +113,7 @@ class TestAlertConsumerContextManager:
     def test_context_manager(self) -> None:
         """Test context manager protocol."""
         with AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["test.topic"],
         ) as consumer:
@@ -120,7 +149,7 @@ class TestAlertConsumerIteration:
         mock_deserialize.return_value = sample_ztf_alert_dict
 
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["babamul.ztf.lsst-match.hosted"],
             timeout=1.0,
@@ -161,7 +190,7 @@ class TestAlertConsumerIteration:
         mock_deserialize.return_value = sample_ztf_alert_dict
 
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["babamul.ztf.lsst-match.hosted"],
             timeout=0.1,
@@ -190,7 +219,7 @@ class TestAlertConsumerIteration:
         mock_deserialize.return_value = sample_ztf_alert_dict
 
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["babamul.ztf.lsst-match.hosted"],
         )
@@ -224,7 +253,7 @@ class TestAlertConsumerIteration:
         mock_deserialize.return_value = sample_ztf_alert_dict
 
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["babamul.ztf.no-lsst-match.hostless"],
             timeout=1.0,
@@ -255,7 +284,7 @@ class TestAlertConsumerIteration:
         mock_deserialize.return_value = sample_lsst_alert_dict
 
         consumer = AlertConsumer(
-            username="user",
+            username="babamul-user",
             password="pass",
             topics=["babamul.lsst.ztf-match.hosted"],
             timeout=1.0,
