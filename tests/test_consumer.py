@@ -20,7 +20,7 @@ class TestAlertConsumerInit:
             AlertConsumer(topics=["test.topic"])
 
     def test_missing_username(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Test error when password is missing."""
+        """Test error when username is missing."""
         monkeypatch.delenv("BABAMUL_KAFKA_USERNAME", raising=False)
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
         with pytest.raises(ValueError, match="Username is required"):
