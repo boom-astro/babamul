@@ -153,11 +153,11 @@ class AlertConsumer:
             self._consumer = self._create_consumer()
         return self._consumer
 
-    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | dict]:
+    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | tuple[bytes, str]]:
         """Iterate over alerts from the subscribed topics.
 
         Yields:
-            BabamulZtfAlert | BabamulLsstAlert | dict objects as they are received from Kafka (dict if as_raw=True).
+            BabamulZtfAlert | BabamulLsstAlert | tuple[bytes, str]: Alert model instances or raw alert data with topic (if as_raw=True).
         Raises:
             BabamulConnectionError: If connection to Kafka is lost.
             DeserializationError: If alert deserialization fails.
@@ -209,11 +209,11 @@ class AlertConsumer:
                     if data is None:
                         continue
 
-                    alert_dict = deserialize_alert(data)
-
                     if self._as_raw:
-                        yield alert_dict
+                        yield (data, msg.topic())
                         continue
+
+                    alert_dict = deserialize_alert(data)
 
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
                     if msg.topic().startswith("babamul.ztf"):  # type: ignore
@@ -245,6 +245,11 @@ class AlertConsumer:
         exc_tb: object,
     ) -> None:
         """Exit context manager and close consumer."""
+        self.close()
+
+    # also close on garbage collection just in case
+    def __del__(self) -> None:
+        """Destructor to ensure resources are cleaned up."""
         self.close()
 
     def close(self) -> None:
