@@ -13,3 +13,4 @@ build/
 
 # Auto-generated version file
 src/babamul/_version.py
+alerts_**/

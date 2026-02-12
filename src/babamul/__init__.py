@@ -24,11 +24,11 @@ from .exceptions import (
 from .models import (
     LsstAlert,
     LsstCandidate,
-    LsstPhotometry,
     ZtfAlert,
     ZtfCandidate,
-    ZtfPhotometry,
 )
+
+from .plot_utils import scan_alerts
 
 try:
     from ._version import __version__
@@ -49,10 +49,8 @@ __all__ = [
     "search_objects",
     # Models
     "ZtfAlert",
-    "ZtfPhotometry",
     "ZtfCandidate",
     "LsstCandidate",
-    "LsstPhotometry",
     "LsstAlert",
     # Exceptions
     "BabamulError",
@@ -63,6 +61,8 @@ __all__ = [
     "APIError",
     "APIAuthenticationError",
     "APINotFoundError",
+    # Plotting utilities
+    "scan_alerts",
     # Version
     "__version__",
 ]
