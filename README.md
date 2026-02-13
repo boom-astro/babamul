@@ -192,7 +192,12 @@ consumer = AlertConsumer(topics=["babamul.*.*.hosted"], ...)
 
 ## Requirements
 
-- Python >= 3.10
+- Python >= 3.11
+- astropy >= 7.2.0
 - confluent-kafka >= 2.3.0
+- cramjam >= 2.8.0
 - fastavro >= 1.9.0
+- httpx >= 0.27.0
+- matplotlib >= 3.8.0
 - pydantic >= 2.0.0
+- scipy >= 1.17.0
