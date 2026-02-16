@@ -223,6 +223,7 @@ class AlertConsumer:
                     else:
                         logger.error(f"Unknown topic format: {msg.topic()}")
                         continue
+                    alert.topic = msg.topic()  # type: ignore
                     yield alert
 
                 except DeserializationError as e:
