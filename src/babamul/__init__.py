@@ -27,7 +27,6 @@ from .models import (
     ZtfAlert,
     ZtfCandidate,
 )
-
 from .plot_utils import scan_alerts
 
 try:

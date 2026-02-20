@@ -1,8 +1,8 @@
 """Tests for the babamul API client."""
 
+import os
 from dataclasses import dataclass
 
-import os
 import dotenv
 import pytest
 
@@ -21,16 +21,19 @@ from babamul.exceptions import (
 )
 from babamul.models import (
     AlertCutouts,
+    LsstAlert,
     ObjectSearchResult,
     UserProfile,
     ZtfAlert,
-    LsstAlert,
 )
 
 dotenv.load_dotenv()
 
 if not os.environ.get("BABAMUL_API_TOKEN"):
-    pytest.skip("BABAMUL_API_TOKEN environment variable must be set for API tests", allow_module_level=True)
+    pytest.skip(
+        "BABAMUL_API_TOKEN environment variable must be set for API tests",
+        allow_module_level=True,
+    )
 
 
 # ---- Fixtures ----
@@ -50,10 +53,16 @@ def _get_test_object(survey, object_id):
         obj = get_object(survey, object_id)
     except (APINotFoundError, APIError):
         pytest.skip(f"Object {object_id} not found in survey {survey}")
-    if obj.candidate and obj.candidate.ra is not None and obj.candidate.dec is not None:
+    if (
+        obj.candidate
+        and obj.candidate.ra is not None
+        and obj.candidate.dec is not None
+    ):
         return _TestObject(object_id, obj.candidate.ra, obj.candidate.dec)
     else:
-        pytest.skip(f"Could not retrieve coordinates for {survey} object ID {object_id}")
+        pytest.skip(
+            f"Could not retrieve coordinates for {survey} object ID {object_id}"
+        )
 
 
 @pytest.fixture(scope="session")
@@ -94,9 +103,13 @@ class TestAPIClientProfile:
 
 class TestAPIClientAlerts:
     def test_get_alerts_requires_filter(self):
-        with pytest.raises(ValueError, match="object_id or \\(ra, dec, radius_arcsec\\)"):
+        with pytest.raises(
+            ValueError, match="object_id or \\(ra, dec, radius_arcsec\\)"
+        ):
             get_alerts("ztf")
-        with pytest.raises(ValueError, match="object_id or \\(ra, dec, radius_arcsec\\)"):
+        with pytest.raises(
+            ValueError, match="object_id or \\(ra, dec, radius_arcsec\\)"
+        ):
             get_alerts("lsst")
 
     def test_get_ztf_alerts_by_object_id(self, ztf_object):
@@ -110,22 +123,26 @@ class TestAPIClientAlerts:
         assert all(a.objectId == lsst_object.id for a in alerts)
 
     def test_get_ztf_alerts_by_ra_dec(self, ztf_object):
-        alerts = get_alerts("ztf", ra=ztf_object.ra, dec=ztf_object.dec, radius_arcsec=10.0)
+        alerts = get_alerts(
+            "ztf", ra=ztf_object.ra, dec=ztf_object.dec, radius_arcsec=10.0
+        )
         assert len(alerts) >= 1
         for a in alerts:
             # Simple check: ensure the alert is within ~10 arcsec of the target position
             delta_ra = abs(a.candidate.ra - ztf_object.ra)
             delta_dec = abs(a.candidate.dec - ztf_object.dec)
-            assert (delta_ra**2 + delta_dec**2)**0.5 <= (10.0 / 3600.0)
+            assert (delta_ra**2 + delta_dec**2) ** 0.5 <= (10.0 / 3600.0)
 
     def test_get_lsst_alerts_by_ra_dec(self, lsst_object):
-        alerts = get_alerts("lsst", ra=lsst_object.ra, dec=lsst_object.dec, radius_arcsec=10.0)
+        alerts = get_alerts(
+            "lsst", ra=lsst_object.ra, dec=lsst_object.dec, radius_arcsec=10.0
+        )
         assert len(alerts) >= 1
         for a in alerts:
             # Simple check: ensure the alert is within ~10 arcsec of the target position
             delta_ra = abs(a.candidate.ra - lsst_object.ra)
             delta_dec = abs(a.candidate.dec - lsst_object.dec)
-            assert (delta_ra**2 + delta_dec**2)**0.5 <= (10.0 / 3600.0)
+            assert (delta_ra**2 + delta_dec**2) ** 0.5 <= (10.0 / 3600.0)
 
     def test_get_alerts_with_drb_filters(self, ztf_object):
         not_filtered_alerts = get_alerts("ztf", object_id=ztf_object.id)
@@ -133,10 +150,13 @@ class TestAPIClientAlerts:
 
         min_drb = 0.99
         is_drb_below = any(
-            a.candidate.drb is not None and a.candidate.drb < min_drb for a in not_filtered_alerts
+            a.candidate.drb is not None and a.candidate.drb < min_drb
+            for a in not_filtered_alerts
         )
         if is_drb_below:
-            alerts = get_alerts("ztf", object_id=ztf_object.id, min_drb=min_drb, max_drb=1)
+            alerts = get_alerts(
+                "ztf", object_id=ztf_object.id, min_drb=min_drb, max_drb=1
+            )
             for a in alerts:
                 if a.candidate.drb is not None:
                     assert a.candidate.drb >= min_drb
@@ -150,16 +170,24 @@ class TestAPIClientAlerts:
 
         min_magpsf = 18.0
         is_magpsf_below = any(
-            a.candidate.magpsf is not None and a.candidate.magpsf < min_magpsf for a in not_filtered_alerts
+            a.candidate.magpsf is not None and a.candidate.magpsf < min_magpsf
+            for a in not_filtered_alerts
         )
         if is_magpsf_below:
-            alerts = get_alerts("ztf", object_id=ztf_object.id, min_magpsf=min_magpsf, max_magpsf=30.0)
+            alerts = get_alerts(
+                "ztf",
+                object_id=ztf_object.id,
+                min_magpsf=min_magpsf,
+                max_magpsf=30.0,
+            )
             for a in alerts:
                 if a.candidate.magpsf is not None:
                     assert a.candidate.magpsf >= min_magpsf
             assert len(not_filtered_alerts) > len(alerts)
         else:
-            pytest.skip(f"No alerts with magpsf < {min_magpsf} to test filtering")
+            pytest.skip(
+                f"No alerts with magpsf < {min_magpsf} to test filtering"
+            )
 
 
 # ---- Cutout tests ----
@@ -291,9 +319,13 @@ class TestAPIClientSearch:
             assert isinstance(r, ObjectSearchResult)
 
         if len(results) < 100:
-            assert any(r.objectId == ztf_object.id for r in results), "Expected object ID not found in search results"
+            assert any(
+                r.objectId == ztf_object.id for r in results
+            ), "Expected object ID not found in search results"
         else:
-            pytest.skip("Too many ZTF results to guarantee presence of specific object ID")
+            pytest.skip(
+                "Too many ZTF results to guarantee presence of specific object ID"
+            )
 
     def test_ztf_search_objects_with_limit(self):
         results = search_objects("ZTF", limit=3)

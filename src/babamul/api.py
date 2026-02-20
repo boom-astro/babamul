@@ -374,7 +374,7 @@ def cone_search_alerts(
         for i, (name, coords) in enumerate(coordinates.items()):
             batch.append((name, coords))
             if len(batch) == batch_size or i == len(coordinates) - 1:
-                batch_coords = {name: coords for name, coords in batch}
+                batch_coords = dict(batch)
                 batch_params = params.copy()
                 batch_params["coordinates"] = batch_coords
                 futures.append(
@@ -513,7 +513,7 @@ def cone_search_objects(
         for i, (name, coords) in enumerate(coordinates.items()):
             batch.append((name, coords))
             if len(batch) == batch_size or i == len(coordinates) - 1:
-                batch_coords = {name: coords for name, coords in batch}
+                batch_coords = dict(batch)
                 batch_params = {
                     "radius_arcsec": radius_arcsec,
                     "coordinates": batch_coords,

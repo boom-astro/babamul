@@ -108,7 +108,12 @@ def plot_cutouts(
 
         # Clean the data
         img = np.array(data)
-        xl = np.greater(np.abs(img), 1e20, out=np.zeros(img.shape, dtype=bool), where=~np.isnan(img))
+        xl = np.greater(
+            np.abs(img),
+            1e20,
+            out=np.zeros(img.shape, dtype=bool),
+            where=~np.isnan(img),
+        )
         if img[xl].any():
             img[xl] = np.nan
         if np.isnan(img).any():

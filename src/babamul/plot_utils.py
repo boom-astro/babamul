@@ -1,11 +1,12 @@
-
-
-from babamul.models import ZtfAlert, LsstAlert
-from ipywidgets import widgets
 from IPython.display import display
+from ipywidgets import widgets
 
-import matplotlib.pyplot as plt
-def scan_alerts(alerts: list[ZtfAlert | LsstAlert], include_cross_matches: bool = False):
+from babamul.models import LsstAlert, ZtfAlert
+
+
+def scan_alerts(
+    alerts: list[ZtfAlert | LsstAlert], include_cross_matches: bool = False
+):
     # Create buttons and output area
     prev_button = widgets.Button(description="← Previous")
     next_button = widgets.Button(description="Next →")
@@ -29,25 +30,24 @@ def scan_alerts(alerts: list[ZtfAlert | LsstAlert], include_cross_matches: bool 
         with output:
             output.clear_output(wait=True)
             try:
-                alert.show(include_cross_matches=include_cross_matches)  # This will display the cutouts and metadata
+                alert.show(
+                    include_cross_matches=include_cross_matches
+                )  # This will display the cutouts and metadata
             except Exception as e:
                 print(f"Error displaying alert: {e}")
             # let's also show a clickable link to the alert on the Babamul web interface
             alert_url = f"https://babamul.caltech.edu/objects/{alert.survey}/{alert.objectId}"
             print(f"View on Babamul: {alert_url}")
 
-
     def on_prev(b):
         if current_idx[0] > 0:
             current_idx[0] -= 1
             update_display()
 
-
     def on_next(b):
         if current_idx[0] < len(alerts) - 1:
             current_idx[0] += 1
             update_display()
-
 
     prev_button.on_click(on_prev)
     next_button.on_click(on_next)
