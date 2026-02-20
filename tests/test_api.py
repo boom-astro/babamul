@@ -103,13 +103,11 @@ class TestAPIClientProfile:
 
 class TestAPIClientAlerts:
     def test_get_alerts_requires_filter(self):
-        with pytest.raises(
-            ValueError, match="object_id or \\(ra, dec, radius_arcsec\\)"
-        ):
+        from babamul.exceptions import APIError
+
+        with pytest.raises(APIError, match="Either object_id or"):
             get_alerts("ztf")
-        with pytest.raises(
-            ValueError, match="object_id or \\(ra, dec, radius_arcsec\\)"
-        ):
+        with pytest.raises(APIError, match="Either object_id or"):
             get_alerts("lsst")
 
     def test_get_ztf_alerts_by_object_id(self, ztf_object):
@@ -354,7 +352,7 @@ class TestFetchCutoutsFromKafkaAlert:
         )
         alert = None
         for alert in ztf_consumer:
-            cutouts = alert.fetch_cutouts()
+            cutouts = alert.get_cutouts()
             assert isinstance(cutouts, AlertCutouts)
             assert cutouts.candid == alert.candid
             assert isinstance(cutouts.cutoutScience, bytes)
@@ -374,7 +372,7 @@ class TestFetchCutoutsFromKafkaAlert:
         )
         alert = None
         for alert in lsst_consumer:
-            cutouts = alert.fetch_cutouts()
+            cutouts = alert.get_cutouts()
             assert isinstance(cutouts, AlertCutouts)
             assert cutouts.candid == alert.candid
             assert isinstance(cutouts.cutoutScience, bytes)
