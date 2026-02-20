@@ -60,17 +60,17 @@ For development and testing, use a `.env` file to manage your credentials:
 
 ```bash
 # 1. Copy the example file
-cp .env.example .env
+cp tests/.env.example tests/.env
 
-# 2. Edit .env with your credentials
+# 2. Edit tests/.env with your credentials
 #    Get credentials at: https://babamul.caltech.edu/signup
-nano .env
+nano tests/.env
 
-# 3. Load automatically in development
+# 3. Load automatically when running tests
 # The .env file is gitignored and will not be committed
 ```
 
-Your `.env` file should look like:
+Your `tests/.env` file should look like:
 
 ```bash
 BABAMUL_KAFKA_USERNAME=your_username

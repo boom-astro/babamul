@@ -101,7 +101,7 @@ module = [
     "confluent_kafka.*",
     "IPython.*",
     "ipywidgets.*",
-    "dotenv.*",
+    "python_dotenv.*",
 ]
 ignore_missing_imports = true
 
@@ -116,7 +116,7 @@ dev = [
     "types-tqdm",
     "ruff>=0.1.0",
     "papermill>=2.6.0",
-    "dotenv>=0.9.9",
+    "python-dotenv>=1.0.0",
     "ipykernel>=7.1.0",
     "polars>=1.37.1",
     "duckdb>=1.4.4",
