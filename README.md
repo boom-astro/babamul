@@ -41,7 +41,7 @@ consumer = AlertConsumer(
 ```bash
 export BABAMUL_KAFKA_USERNAME="your_username"
 export BABAMUL_KAFKA_PASSWORD="your_password"
-export BABAMUL_SERVER="kaboom.caltech.edu:9093"  # Optional, defaults to kaboom.caltech.edu:9093
+export BABAMUL_KAFKA_SERVER="kaboom.caltech.edu:9093"  # Optional, defaults to kaboom.caltech.edu:9093
 ```
 
 Then in Python:
@@ -53,6 +53,32 @@ from babamul import AlertConsumer
 for alert in AlertConsumer(topics=["babamul.ztf.lsst-match.hosted"]):
     print(f"{alert.objectId}: RA={alert.candidate.ra:.4f}, Dec={alert.candidate.dec:.4f}")
 ```
+
+### Development Setup
+
+For development and testing, use a `.env` file to manage your credentials:
+
+```bash
+# 1. Copy the example file
+cp .env.example .env
+
+# 2. Edit .env with your credentials
+#    Get credentials at: https://babamul.caltech.edu/signup
+nano .env
+
+# 3. Load automatically in development
+# The .env file is gitignored and will not be committed
+```
+
+Your `.env` file should look like:
+
+```bash
+BABAMUL_KAFKA_USERNAME=your_username
+BABAMUL_KAFKA_PASSWORD=your_password
+BABAMUL_API_TOKEN=your_api_token
+```
+
+Most examples and tests will automatically load credentials from `.env` using `python-dotenv`.
 
 ## Working with Alerts
 

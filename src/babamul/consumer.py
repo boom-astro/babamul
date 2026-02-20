@@ -7,7 +7,7 @@ from typing import Any
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
 from .avro import deserialize_alert
-from .config import MAIN_KAFKA_SERVER, BabamulConfig
+from .config import BabamulConfig
 from .exceptions import (
     AuthenticationError,
     BabamulConnectionError,
@@ -31,7 +31,7 @@ class AlertConsumer:
         topics: TopicType | list[TopicType] | str | list[str] = "",
         username: str | None = None,
         password: str | None = None,
-        server: str = MAIN_KAFKA_SERVER,
+        server: str | None = None,
         group_id: str | None = None,
         offset: str = "latest",
         timeout: float | None = None,
@@ -49,9 +49,9 @@ class AlertConsumer:
             Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
         password : str | None
             Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
-        server : str
-            Kafka bootstrap server. Defaults to Babamul's server.
-            Can also be set via BABAMUL_SERVER env var.
+        server : str | None
+            Kafka bootstrap server. Uses BABAMUL_KAFKA_SERVER env var if not provided,
+            or defaults to Babamul's main server if env var is unset/empty.
         group_id : str | None
             Kafka consumer group ID. Auto-generated if not provided.
         offset : str

@@ -16,5 +16,4 @@ test: ## Test the code with pytest.
 .PHONY: check-types
 check-types: ## Check types with mypy.
 	@echo "🚀 Checking types with mypy"
-	@rm -rf .mypy_cache
 	@uv run mypy src/babamul
