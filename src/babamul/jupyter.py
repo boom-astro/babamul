@@ -1,3 +1,5 @@
+"""Functionality for working with Babamul in Jupyter notebooks."""
+
 from typing import Any
 
 from IPython.display import display
