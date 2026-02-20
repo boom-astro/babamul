@@ -12,8 +12,8 @@ from .raw_models import (
     EnrichedLsstAlert,
     EnrichedZtfAlert,
     LsstCandidate,
-    ZtfCandidate,
     Photometry,
+    ZtfCandidate,
 )
 
 # --- API response models ---
