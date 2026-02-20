@@ -1,25 +1,12 @@
 #!/usr/bin/env python3
-"""Basic usage example for babamul.
-
-This example demonstrates how to consume alerts from Babamul Kafka streams.
-
-Before running, set your credentials:
-    export BABAMUL_KAFKA_USERNAME="your_username"
-    export BABAMUL_KAFKA_PASSWORD="your_password"
-
-Or pass them directly to AlertConsumer.
-"""
+"""Basic usage example for babamul."""
 
 from babamul import AlertConsumer, LsstCandidate, ZtfCandidate
 
 
 def main() -> None:
     """Consume and display alerts from Babamul."""
-    # Create consumer (credentials from environment or pass directly)
     consumer = AlertConsumer(
-        # username="your_username",  # Or set BABAMUL_KAFKA_USERNAME env var
-        # password="your_password",  # Or set BABAMUL_KAFKA_PASSWORD env var
-        # server=BACKUP_KAFKA_SERVERS,  # Optional, defaults to MAIN_KAFKA_SERVER
         topics=[
             "babamul.ztf.lsst-match.hosted",
             "babamul.lsst.ztf-match.hosted",
