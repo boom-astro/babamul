@@ -182,7 +182,8 @@ def get_alerts(
     """
 
     params = {
-        key: value for key, value in {
+        key: value
+        for key, value in {
             "object_id": object_id,
             "ra": ra,
             "dec": dec,
@@ -197,7 +198,8 @@ def get_alerts(
             "is_star": is_star,
             "is_near_brightstar": is_near_brightstar,
             "is_stationary": is_stationary,
-        }.items() if value is not None
+        }.items()
+        if value is not None
     }
 
     response = _request("GET", f"/surveys/{survey}/alerts", params=params)
@@ -208,7 +210,11 @@ def get_alerts(
 
 def cone_search_alerts(
     survey: Survey,
-    coordinates: SkyCoord | list[tuple[str, float, float]] | list[dict[str, Any]] | dict[str, tuple[float, float]] | Table,
+    coordinates: SkyCoord
+    | list[tuple[str, float, float]]
+    | list[dict[str, Any]]
+    | dict[str, tuple[float, float]]
+    | Table,
     radius_arcsec: float,
     *,
     start_jd: float | None = None,
@@ -265,26 +271,73 @@ def cone_search_alerts(
     # coordinates can be a SkyCoord (with name), a tuple of (name, ra, dec) or a dict with keys "name", "ra", "dec"
     if isinstance(coordinates, SkyCoord):
         if coordinates.isscalar:
-            coordinates = {"coord_0": (coordinates.ra.deg, coordinates.dec.deg)}
+            coordinates = {
+                "coord_0": (coordinates.ra.deg, coordinates.dec.deg)
+            }
         else:
-            coordinates = {f"coord_{i}": (coord.ra.deg, coord.dec.deg) for i, coord in enumerate(coordinates)}
-    elif isinstance(coordinates, list) and all(isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates):
+            coordinates = {
+                f"coord_{i}": (coord.ra.deg, coord.dec.deg)
+                for i, coord in enumerate(coordinates)
+            }
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates
+    ):
         coordinates = {name: (ra, dec) for name, ra, dec in coordinates}
-    elif isinstance(coordinates, list) and all(isinstance(coord, dict) and "name" in coord and "ra" in coord and "dec" in coord for coord in coordinates):
-        coordinates = {coord["name"]: (coord["ra"], coord["dec"]) for coord in coordinates}
-    elif isinstance(coordinates, dict) and all(isinstance(coord, tuple) and len(coord) == 2 for coord in coordinates.values()):
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, dict)
+        and "name" in coord
+        and "ra" in coord
+        and "dec" in coord
+        for coord in coordinates
+    ):
+        coordinates = {
+            coord["name"]: (coord["ra"], coord["dec"]) for coord in coordinates
+        }
+    elif isinstance(coordinates, dict) and all(
+        isinstance(coord, tuple) and len(coord) == 2
+        for coord in coordinates.values()
+    ):
         pass  # already in the correct format
     # let's be a little flexible, and allow aliases of "name", "ra", "dec" in the table, as long as we can find them
     elif isinstance(coordinates, Table):
-        name_col = next((col for col in coordinates.colnames if col.lower() in ["name", "id", "objname"]), None)
-        ra_col = next((col for col in coordinates.colnames if col.lower() in ["ra", "ra_deg", "ra_j2000"]), None)
-        dec_col = next((col for col in coordinates.colnames if col.lower() in ["dec", "dec_deg", "dec_j2000", "decl", "declination"]), None)
+        name_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["name", "id", "objname"]
+            ),
+            None,
+        )
+        ra_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["ra", "ra_deg", "ra_j2000"]
+            ),
+            None,
+        )
+        dec_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower()
+                in ["dec", "dec_deg", "dec_j2000", "decl", "declination"]
+            ),
+            None,
+        )
         if name_col and ra_col and dec_col:
-            coordinates = {row[name_col]: (row[ra_col], row[dec_col]) for row in coordinates}
+            coordinates = {
+                row[name_col]: (row[ra_col], row[dec_col])
+                for row in coordinates
+            }
         else:
-            raise ValueError("Table must have columns for name, ra, and dec (or their aliases).")
+            raise ValueError(
+                "Table must have columns for name, ra, and dec (or their aliases)."
+            )
     else:
-        raise ValueError("Invalid coordinates format. Must be a SkyCoord, list of (name, ra, dec) tuples, or list of dicts with keys 'name', 'ra', 'dec'.")
+        raise ValueError(
+            "Invalid coordinates format. Must be a SkyCoord, list of (name, ra, dec) tuples, or list of dicts with keys 'name', 'ra', 'dec'."
+        )
 
     if batch_size < 1 or batch_size > 5000:
         raise ValueError("Batch size must be between 1 and 5000.")
@@ -295,7 +348,8 @@ def cone_search_alerts(
 
     # we use the /surveys/{survey}/alerts/cone_search endpoint which accepts a list of coordinates as dicts with keys "name", "ra", "dec"
     params = {
-        key: value for key, value in {
+        key: value
+        for key, value in {
             "radius_arcsec": radius_arcsec,
             "start_jd": start_jd,
             "end_jd": end_jd,
@@ -307,7 +361,8 @@ def cone_search_alerts(
             "is_star": is_star,
             "is_near_brightstar": is_near_brightstar,
             "is_stationary": is_stationary,
-        }.items() if value is not None
+        }.items()
+        if value is not None
     }
     # params["coordinates"] = coordinates
     params["radius_arcsec"] = radius_arcsec
@@ -322,7 +377,14 @@ def cone_search_alerts(
                 batch_coords = {name: coords for name, coords in batch}
                 batch_params = params.copy()
                 batch_params["coordinates"] = batch_coords
-                futures.append(executor.submit(_request, "POST", f"/surveys/{survey}/alerts/cone_search", json=batch_params))
+                futures.append(
+                    executor.submit(
+                        _request,
+                        "POST",
+                        f"/surveys/{survey}/alerts/cone_search",
+                        json=batch_params,
+                    )
+                )
                 batch = []
 
         for future in as_completed(futures):
@@ -331,15 +393,22 @@ def cone_search_alerts(
                 data = response.get("data", [])
                 alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
                 for name, alerts in data.items():
-                    results[name] = [alert_model.model_validate(alert) for alert in alerts]
+                    results[name] = [
+                        alert_model.model_validate(alert) for alert in alerts
+                    ]
             except Exception as e:
                 logger.error(f"Error processing cone search batch: {e}")
 
     return results
 
+
 def cone_search_objects(
     survey: Survey,
-    coordinates: SkyCoord | list[tuple[str, float, float]] | list[dict[str, Any]] | dict[str, tuple[float, float]] | Table,
+    coordinates: SkyCoord
+    | list[tuple[str, float, float]]
+    | list[dict[str, Any]]
+    | dict[str, tuple[float, float]]
+    | Table,
     radius_arcsec: float,
     n_threads: int = 4,
     batch_size: int = 500,
@@ -363,25 +432,72 @@ def cone_search_objects(
     # we can reuse the same coordinate parsing logic as in cone_search_alerts, since the input format is the same
     if isinstance(coordinates, SkyCoord):
         if coordinates.isscalar:
-            coordinates = {"coord_0": (coordinates.ra.deg, coordinates.dec.deg)}
+            coordinates = {
+                "coord_0": (coordinates.ra.deg, coordinates.dec.deg)
+            }
         else:
-            coordinates = {f"coord_{i}": (coord.ra.deg, coord.dec.deg) for i, coord in enumerate(coordinates)}
-    elif isinstance(coordinates, list) and all(isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates):
+            coordinates = {
+                f"coord_{i}": (coord.ra.deg, coord.dec.deg)
+                for i, coord in enumerate(coordinates)
+            }
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates
+    ):
         coordinates = {name: (ra, dec) for name, ra, dec in coordinates}
-    elif isinstance(coordinates, list) and all(isinstance(coord, dict) and "name" in coord and "ra" in coord and "dec" in coord for coord in coordinates):
-        coordinates = {coord["name"]: (coord["ra"], coord["dec"]) for coord in coordinates}
-    elif isinstance(coordinates, dict) and all(isinstance(coord, tuple) and len(coord) == 2 for coord in coordinates.values()):
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, dict)
+        and "name" in coord
+        and "ra" in coord
+        and "dec" in coord
+        for coord in coordinates
+    ):
+        coordinates = {
+            coord["name"]: (coord["ra"], coord["dec"]) for coord in coordinates
+        }
+    elif isinstance(coordinates, dict) and all(
+        isinstance(coord, tuple) and len(coord) == 2
+        for coord in coordinates.values()
+    ):
         pass  # already in the correct format
     elif isinstance(coordinates, Table):
-        name_col = next((col for col in coordinates.colnames if col.lower() in ["name", "id", "objname"]), None)
-        ra_col = next((col for col in coordinates.colnames if col.lower() in ["ra", "ra_deg", "ra_j2000"]), None)
-        dec_col = next((col for col in coordinates.colnames if col.lower() in ["dec", "dec_deg", "dec_j2000", "decl", "declination"]), None)
+        name_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["name", "id", "objname"]
+            ),
+            None,
+        )
+        ra_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["ra", "ra_deg", "ra_j2000"]
+            ),
+            None,
+        )
+        dec_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower()
+                in ["dec", "dec_deg", "dec_j2000", "decl", "declination"]
+            ),
+            None,
+        )
         if name_col and ra_col and dec_col:
-            coordinates = {row[name_col]: (row[ra_col], row[dec_col]) for row in coordinates}
+            coordinates = {
+                row[name_col]: (row[ra_col], row[dec_col])
+                for row in coordinates
+            }
         else:
-            raise ValueError("Table must have columns for name, ra, and dec (or their aliases).")
+            raise ValueError(
+                "Table must have columns for name, ra, and dec (or their aliases)."
+            )
     else:
-        raise ValueError("Invalid coordinates format. Must be a SkyCoord, list of (name, ra, dec) tuples, or list of dicts with keys 'name', 'ra', 'dec'.")
+        raise ValueError(
+            "Invalid coordinates format. Must be a SkyCoord, list of (name, ra, dec) tuples, or list of dicts with keys 'name', 'ra', 'dec'."
+        )
 
     if batch_size < 1 or batch_size > 5000:
         raise ValueError("Batch size must be between 1 and 5000.")
@@ -398,8 +514,18 @@ def cone_search_objects(
             batch.append((name, coords))
             if len(batch) == batch_size or i == len(coordinates) - 1:
                 batch_coords = {name: coords for name, coords in batch}
-                batch_params = {"radius_arcsec": radius_arcsec, "coordinates": batch_coords}
-                futures.append(executor.submit(_request, "POST", f"/surveys/{survey}/objects/cone_search", json=batch_params))
+                batch_params = {
+                    "radius_arcsec": radius_arcsec,
+                    "coordinates": batch_coords,
+                }
+                futures.append(
+                    executor.submit(
+                        _request,
+                        "POST",
+                        f"/surveys/{survey}/objects/cone_search",
+                        json=batch_params,
+                    )
+                )
                 batch = []
 
         for future in as_completed(futures):
@@ -407,10 +533,14 @@ def cone_search_objects(
                 response = future.result()
                 data = response.get("data", {})
                 for name, objects in data.items():
-                    results[name] = [ObjectSearchResult.model_validate(obj) for obj in objects]
+                    results[name] = [
+                        ObjectSearchResult.model_validate(obj)
+                        for obj in objects
+                    ]
             except Exception as e:
                 logger.error(f"Error processing cone search batch: {e}")
     return results
+
 
 def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     """Get cutout images for an alert.
@@ -475,7 +605,10 @@ def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
     elif survey == "LSST":
         return LsstAlert.model_validate(data)
     else:
-        raise ValueError(f"Survey {survey} is not supported, must be one of: {', '.join(Survey)}")
+        raise ValueError(
+            f"Survey {survey} is not supported, must be one of: {', '.join(Survey)}"
+        )
+
 
 def get_photometry(survey: Survey, object_id: str) -> ObjPhotometry:
     """Get photometry history for an object.
@@ -504,6 +637,7 @@ def get_photometry(survey: Survey, object_id: str) -> ObjPhotometry:
         fp_hists=getattr(obj, "fp_hists", []),
     )
 
+
 def get_cross_matches(survey: Survey, object_id: str) -> CrossMatches:
     """Get cross-matches for an object.
 
@@ -525,7 +659,9 @@ def get_cross_matches(survey: Survey, object_id: str) -> CrossMatches:
     return CrossMatches.model_validate(data)
 
 
-def search_objects(object_id: str, limit: int = 10) -> list[ObjectSearchResult]:
+def search_objects(
+    object_id: str, limit: int = 10
+) -> list[ObjectSearchResult]:
     """Search for objects by partial ID.
 
     Parameters
