@@ -2,27 +2,26 @@
 
 from __future__ import annotations
 
-import os
 import base64
 import logging
-from typing import Any, Literal
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-
-from astropy.coordinates import SkyCoord
-from astropy.table import Table
+from typing import Any, Literal
 
 import httpx
+from astropy.coordinates import SkyCoord
+from astropy.table import Table
 
 from .config import get_base_url
 from .exceptions import APIAuthenticationError, APIError, APINotFoundError
 from .models import (
     AlertCutouts,
+    CrossMatches,
     LsstAlert,
     ObjectSearchResult,
+    ObjPhotometry,
     UserProfile,
     ZtfAlert,
-    CrossMatches,
-    ObjPhotometry,
 )
 
 logger = logging.getLogger(__name__)
