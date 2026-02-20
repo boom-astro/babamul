@@ -1,5 +1,7 @@
 # babamul
 
+[![PyPI](https://img.shields.io/pypi/v/babamul)](https://pypi.org/project/babamul/)
+
 Python client for consuming ZTF/LSST astronomical transient alerts from Babamul Kafka streams.
 
 ## Installation
