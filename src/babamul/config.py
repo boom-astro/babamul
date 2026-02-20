@@ -82,8 +82,8 @@ class BabamulConfig:
         """
         final_username = username or os.environ.get("BABAMUL_KAFKA_USERNAME")
         final_password = password or os.environ.get("BABAMUL_KAFKA_PASSWORD")
-        final_server = server or os.environ.get(
-            "BABAMUL_SERVER", MAIN_KAFKA_SERVER
+        final_server = (
+            server or os.environ.get("BABAMUL_SERVER") or MAIN_KAFKA_SERVER
         )
         if not final_username:
             raise ValueError(

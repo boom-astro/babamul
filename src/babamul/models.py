@@ -1,10 +1,14 @@
 """Pydantic models for Babamul alerts."""
 
 from datetime import timezone
+from typing import TYPE_CHECKING
 
 import matplotlib.pyplot as plt
 from astropy.time import Time
 from pydantic import AliasChoices, BaseModel, Field, computed_field
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 from .cutout_utils import plot_cutouts
 from .lightcurve_utils import plot_lightcurve
@@ -15,6 +19,22 @@ from .raw_models import (
     Photometry,
     ZtfCandidate,
 )
+
+__all__ = [
+    "AlertCutouts",
+    "CrossMatches",
+    "EnrichedLsstAlert",
+    "EnrichedZtfAlert",
+    "LsstAlert",
+    "LsstCandidate",
+    "NedMatch",
+    "ObjectSearchResult",
+    "ObjPhotometry",
+    "Photometry",
+    "UserProfile",
+    "ZtfAlert",
+    "ZtfCandidate",
+]
 
 # --- API response models ---
 
@@ -33,7 +53,9 @@ class AlertCutouts(BaseModel):
 class ObjPhotometry(BaseModel):
     """Photometry data for an object."""
 
-    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
+    objectId: str = Field(
+        ..., validation_alias=AliasChoices("objectId", "object_id")
+    )
     prv_candidates: list[Photometry] = Field(default_factory=list)
     prv_nondetections: list[Photometry] = Field(default_factory=list)
     fp_hists: list[Photometry] = Field(default_factory=list)
@@ -51,7 +73,7 @@ class ObjectSearchResult(BaseModel):
 class UserProfile(BaseModel):
     """User profile information."""
 
-    id: str = Field(..., alias=AliasChoices("id", "_id"))
+    id: str = Field(..., validation_alias=AliasChoices("id", "_id"))
     username: str
     email: str
     created_at: int
@@ -118,7 +140,7 @@ class MilliquasarMatch(BaseModel):
 
 
 class GaiaMatch(BaseModel):
-    id: int | str = Field(..., alias=AliasChoices("id", "_id"))
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
     ra: float
     dec: float
     parallax: float | None = None
@@ -143,16 +165,24 @@ class CrossMatches(BaseModel):
     """Cross-matches with other surveys."""
 
     # survey name -> list of matches
-    ned: list[NedMatch] | None = Field([], alias=AliasChoices("ned", "NED"))
-    catwise: list[CatwiseMatch] | None = Field(
-        [], alias=AliasChoices("catwise", "CatWISE", "CatWISE2020")
+    ned: list[NedMatch] | None = Field(
+        [], validation_alias=AliasChoices("ned", "NED")
     )
-    vsx: list[VsxMatch] | None = Field([], alias=AliasChoices("vsx", "VSX"))
+    catwise: list[CatwiseMatch] | None = Field(
+        [], validation_alias=AliasChoices("catwise", "CatWISE", "CatWISE2020")
+    )
+    vsx: list[VsxMatch] | None = Field(
+        [], validation_alias=AliasChoices("vsx", "VSX")
+    )
     milliquasar: list[MilliquasarMatch] | None = Field(
-        [], alias=AliasChoices("milliquasar", "Milliquasar", "milliquas_v8")
+        [],
+        validation_alias=AliasChoices(
+            "milliquasar", "Milliquasar", "milliquas_v8"
+        ),
     )
     gaia: list[GaiaMatch] | None = Field(
-        [], alias=AliasChoices("gaia", "Gaia", "Gaia_DR3", "Gaia_EDR3")
+        [],
+        validation_alias=AliasChoices("gaia", "Gaia", "Gaia_DR3", "Gaia_EDR3"),
     )
 
 
@@ -180,13 +210,16 @@ class ZtfAlert(EnrichedZtfAlert):
             self.prv_candidates = photometry_data.prv_candidates
             self.fp_hists = photometry_data.fp_hists
             self.prv_nondetections = photometry_data.prv_nondetections
-        photometry = []
+        photometry: list[Photometry] = []
         # Add prv_candidates photometry
-        photometry.extend(self.prv_candidates)
+        if self.prv_candidates:
+            photometry.extend(self.prv_candidates)
         # Add fp_hists photometry if available
-        photometry.extend(self.fp_hists)
+        if self.fp_hists:
+            photometry.extend(self.fp_hists)
         # Add prv_nondetections photometry
-        photometry.extend(self.prv_nondetections)
+        if self.prv_nondetections:
+            photometry.extend(self.prv_nondetections)
 
         # Sort photometry by Julian Date (jd)
         photometry.sort(key=lambda x: x.jd)
@@ -206,8 +239,8 @@ class ZtfAlert(EnrichedZtfAlert):
 
     # Let's add a `survey` property for convenience, and use `computed_field`
     # so it shows up in the schema and model dumps
-    @computed_field
     @property
+    @computed_field
     def survey(self) -> str:
         return "ZTF"
 
@@ -219,11 +252,11 @@ class ZtfAlert(EnrichedZtfAlert):
     def plot_cutouts(
         self,
         orientation: str = "horizontal",
-        axes: list[plt.Axes] | None = None,
+        axes: "list[Axes] | None" = None,
         show: bool = True,
-        figsize: tuple | None = None,
+        figsize: tuple[float, float] | None = None,
         title: str | None = None,
-    ) -> list[plt.Axes]:
+    ) -> "list[Axes]":
         """Display the science, template, and difference cutouts for this alert.
 
         Parameters
@@ -295,7 +328,7 @@ class ZtfAlert(EnrichedZtfAlert):
             )
         from .api import get_cutouts as get_cutouts_from_api
 
-        cutouts = get_cutouts_from_api("ztf", self.candid)
+        cutouts = get_cutouts_from_api("ZTF", self.candid)
         self.cutoutScience = cutouts.cutoutScience
         self.cutoutTemplate = cutouts.cutoutTemplate
         self.cutoutDifference = cutouts.cutoutDifference
@@ -313,11 +346,11 @@ class ZtfAlert(EnrichedZtfAlert):
             return self.cross_matches
         from .api import get_cross_matches as get_cross_matches_from_api
 
-        self.cross_matches = get_cross_matches_from_api("ztf", self.objectId)
+        self.cross_matches = get_cross_matches_from_api("ZTF", self.objectId)
         return self.cross_matches
 
     def plot_lightcurve(
-        self, ax: plt.Axes | None = None, show: bool = True
+        self, ax: "Axes | None" = None, show: bool = True
     ) -> None:
         """Plot the lightcurve for this alert.
 
@@ -342,10 +375,10 @@ class ZtfAlert(EnrichedZtfAlert):
         plot_lightcurve(self, ax=ax, show=show)
 
     def plot_cross_matches(
-        self, ax: plt.Axes | None = None, show: bool = True
+        self, ax: "Axes | None" = None, show: bool = True
     ) -> None:
         # here we just want to show a table of the cross-matches, so we can use `ax.table` for that
-        cross_matches: CrossMatches = self.get_cross_matches()
+        cross_matches = self.get_cross_matches()
         if cross_matches is None:
             print("No cross-match information available.")
             return
@@ -373,7 +406,9 @@ class ZtfAlert(EnrichedZtfAlert):
             fig, ax = plt.subplots(figsize=(8, len(df) * 0.5 + 1))
         ax.axis("off")
         table = ax.table(
-            cellText=df.values, colLabels=df.columns, loc="center"
+            cellText=df.values.tolist(),
+            colLabels=df.columns.tolist(),
+            loc="center",
         )
         table.auto_set_font_size(False)
         table.set_fontsize(10)
@@ -427,7 +462,7 @@ class ZtfAlert(EnrichedZtfAlert):
                 ax2 = fig.add_subplot(gs[1, 0])
                 ax3 = fig.add_subplot(gs[2, 0])
                 ax4 = fig.add_subplot(gs[0:2, 1])
-                ax5 = fig.add_subplot(gs[2, :])
+                fig.add_subplot(gs[2, :])
             else:
                 fig = plt.figure(figsize=(12, 12))
                 gs = fig.add_gridspec(
@@ -437,18 +472,21 @@ class ZtfAlert(EnrichedZtfAlert):
                 ax2 = fig.add_subplot(gs[0, 1])
                 ax3 = fig.add_subplot(gs[0, 2])
                 ax4 = fig.add_subplot(gs[1, :])
-                ax5 = fig.add_subplot(gs[2, :])
+                fig.add_subplot(gs[2, :])
             self.plot_cutouts(
                 orientation=orientation, axes=[ax1, ax2, ax3], show=False
             )
             self.plot_lightcurve(ax=ax4, show=False)
-            self.plot_cross_matches(ax=ax5, show=False)
+            # Display cross-match info
+            self.get_cross_matches()
         plt.suptitle(f"{self.objectId}", fontsize=16, fontweight="bold")
         plt.tight_layout()
         plt.show()
 
 
-ZtfCandidate.datetime = property(
+# Add datetime property to ZtfCandidate for convenience
+# Note: Mypy doesn't support dynamic property assignment, so we ignore this
+ZtfCandidate.datetime = property(  # type: ignore[attr-defined]
     lambda self: Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)
 )
 
@@ -467,11 +505,13 @@ class LsstAlert(EnrichedLsstAlert):
             photometry_data = get_photometry_from_api("LSST", self.objectId)
             self.prv_candidates = photometry_data.prv_candidates
             self.fp_hists = photometry_data.fp_hists
-        photometry = []
+        photometry: list[Photometry] = []
         # Add prv_candidates photometry
-        photometry.extend(self.prv_candidates)
+        if self.prv_candidates:
+            photometry.extend(self.prv_candidates)
         # Add fp_hists photometry if available
-        photometry.extend(self.fp_hists)
+        if self.fp_hists:
+            photometry.extend(self.fp_hists)
 
         # Sort photometry by Julian Date (jd)
         photometry.sort(key=lambda x: x.jd)
@@ -490,8 +530,8 @@ class LsstAlert(EnrichedLsstAlert):
         return photometry
 
     # let's add a `survey` property for convenience
-    @computed_field
     @property
+    @computed_field
     def survey(self) -> str:
         return "LSST"
 
@@ -504,11 +544,11 @@ class LsstAlert(EnrichedLsstAlert):
         self,
         orientation: str = "horizontal",
         use_rotation: bool = True,
-        axes: list[plt.Axes] | None = None,
+        axes: "list[Axes] | None" = None,
         show: bool = True,
-        figsize: tuple | None = None,
+        figsize: tuple[float, float] | None = None,
         title: str | None = None,
-    ) -> list[plt.Axes]:
+    ) -> "list[Axes]":
         """Display the science, template, and difference cutouts for this alert.
 
         Parameters
@@ -609,7 +649,9 @@ class LsstAlert(EnrichedLsstAlert):
         self.cross_matches = get_cross_matches_from_api("LSST", self.objectId)
         return self.cross_matches
 
-    def plot_lightcurve(self, ax: plt.Axes | None = None, show: bool = True):
+    def plot_lightcurve(
+        self, ax: "Axes | None" = None, show: bool = True
+    ) -> None:
         """Plot the lightcurve for this alert.
 
         Parameters
@@ -627,7 +669,7 @@ class LsstAlert(EnrichedLsstAlert):
             self.fp_hists = photometry_data.fp_hists
         plot_lightcurve(self, ax=ax, show=show)
 
-    def show_lightcurve(self):
+    def show_lightcurve(self) -> None:
         """Display the lightcurve in a new matplotlib figure."""
         self.plot_lightcurve(show=True)
 
@@ -635,7 +677,7 @@ class LsstAlert(EnrichedLsstAlert):
         self,
         orientation: str = "horizontal",
         include_cross_matches: bool = False,
-    ):
+    ) -> None:
         """Display both cutouts and lightcurve for this alert."""
         if not include_cross_matches:
             if orientation == "horizontal":
@@ -673,7 +715,7 @@ class LsstAlert(EnrichedLsstAlert):
                 ax2 = fig.add_subplot(gs[1, 0])
                 ax3 = fig.add_subplot(gs[2, 0])
                 ax4 = fig.add_subplot(gs[0:2, 1])
-                ax5 = fig.add_subplot(gs[2, :])
+                fig.add_subplot(gs[2, :])
             else:
                 fig = plt.figure(figsize=(12, 12))
                 gs = fig.add_gridspec(
@@ -683,18 +725,21 @@ class LsstAlert(EnrichedLsstAlert):
                 ax2 = fig.add_subplot(gs[0, 1])
                 ax3 = fig.add_subplot(gs[0, 2])
                 ax4 = fig.add_subplot(gs[1, :])
-                ax5 = fig.add_subplot(gs[2, :])
+                fig.add_subplot(gs[2, :])
             self.plot_cutouts(
                 orientation=orientation, axes=[ax1, ax2, ax3], show=False
             )
             self.plot_lightcurve(ax=ax4, show=False)
-            self.plot_cross_matches(ax=ax5, show=False)
+            # Display cross-match info
+            self.get_cross_matches()
         plt.suptitle(f"{self.objectId}", fontsize=16, fontweight="bold")
         plt.tight_layout()
         plt.show()
 
 
-LsstCandidate.datetime = property(
+# Add datetime property to LsstCandidate for convenience
+# Note: Mypy doesn't support dynamic property assignment, so we ignore this
+LsstCandidate.datetime = property(  # type: ignore[attr-defined]
     lambda self: Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)
 )
 

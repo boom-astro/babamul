@@ -29,39 +29,31 @@ from .models import (
 )
 from .plot_utils import scan_alerts
 
-try:
-    from ._version import __version__
-except ImportError:
-    __version__ = "0.0.0+unknown"
-
 __all__ = [
-    # Modules
     "api",
     "topics",
-    # Main classes
-    "AlertConsumer",
-    # API functions
     "get_alerts",
     "get_cutouts",
     "get_object",
     "get_profile",
     "search_objects",
-    # Models
-    "ZtfAlert",
-    "ZtfCandidate",
-    "LsstCandidate",
-    "LsstAlert",
-    # Exceptions
-    "BabamulError",
+    "AlertConsumer",
+    "APIAuthenticationError",
+    "APIError",
+    "APINotFoundError",
     "AuthenticationError",
     "BabamulConnectionError",
-    "DeserializationError",
+    "BabamulError",
     "ConfigurationError",
-    "APIError",
-    "APIAuthenticationError",
-    "APINotFoundError",
-    # Plotting utilities
+    "DeserializationError",
+    "LsstAlert",
+    "LsstCandidate",
+    "ZtfAlert",
+    "ZtfCandidate",
     "scan_alerts",
-    # Version
-    "__version__",
 ]
+
+try:
+    from ._version import __version__
+except ImportError:
+    __version__ = "0.0.0+unknown"

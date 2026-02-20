@@ -6,7 +6,7 @@ import base64
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import httpx
 from astropy.coordinates import SkyCoord
@@ -119,7 +119,7 @@ def _request(
             status_code=response.status_code,
         )
 
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 
 def get_alerts(
@@ -269,20 +269,26 @@ def cone_search_alerts(
         List of alerts matching the query parameters.
     """
     # coordinates can be a SkyCoord (with name), a tuple of (name, ra, dec) or a dict with keys "name", "ra", "dec"
+    normalized_coords: dict[str, tuple[float, float]]
     if isinstance(coordinates, SkyCoord):
         if coordinates.isscalar:
-            coordinates = {
-                "coord_0": (coordinates.ra.deg, coordinates.dec.deg)
+            normalized_coords = {
+                "coord_0": (
+                    float(coordinates.ra.deg),  # type: ignore[union-attr]
+                    float(coordinates.dec.deg),  # type: ignore[union-attr]
+                )
             }
         else:
-            coordinates = {
-                f"coord_{i}": (coord.ra.deg, coord.dec.deg)
+            normalized_coords = {
+                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))  # type: ignore[union-attr]
                 for i, coord in enumerate(coordinates)
             }
     elif isinstance(coordinates, list) and all(
         isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates
     ):
-        coordinates = {name: (ra, dec) for name, ra, dec in coordinates}
+        normalized_coords = {
+            name: (float(ra), float(dec)) for name, ra, dec in coordinates
+        }
     elif isinstance(coordinates, list) and all(
         isinstance(coord, dict)
         and "name" in coord
@@ -290,14 +296,18 @@ def cone_search_alerts(
         and "dec" in coord
         for coord in coordinates
     ):
-        coordinates = {
-            coord["name"]: (coord["ra"], coord["dec"]) for coord in coordinates
+        coord_list = cast(list[dict[str, Any]], coordinates)
+        normalized_coords = {
+            str(coord["name"]): (float(coord["ra"]), float(coord["dec"]))
+            for coord in coord_list
         }
     elif isinstance(coordinates, dict) and all(
         isinstance(coord, tuple) and len(coord) == 2
         for coord in coordinates.values()
     ):
-        pass  # already in the correct format
+        normalized_coords = {
+            k: (float(v[0]), float(v[1])) for k, v in coordinates.items()
+        }
     # let's be a little flexible, and allow aliases of "name", "ra", "dec" in the table, as long as we can find them
     elif isinstance(coordinates, Table):
         name_col = next(
@@ -326,8 +336,8 @@ def cone_search_alerts(
             None,
         )
         if name_col and ra_col and dec_col:
-            coordinates = {
-                row[name_col]: (row[ra_col], row[dec_col])
+            normalized_coords = {
+                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))  # type: ignore[arg-type]
                 for row in coordinates
             }
         else:
@@ -371,11 +381,11 @@ def cone_search_alerts(
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
         futures = []
         batch = []
-        for i, (name, coords) in enumerate(coordinates.items()):
+        for i, (name, coords) in enumerate(normalized_coords.items()):
             batch.append((name, coords))
-            if len(batch) == batch_size or i == len(coordinates) - 1:
+            if len(batch) == batch_size or i == len(normalized_coords) - 1:
                 batch_coords = dict(batch)
-                batch_params = params.copy()
+                batch_params: dict[str, Any] = params.copy()
                 batch_params["coordinates"] = batch_coords
                 futures.append(
                     executor.submit(
@@ -430,20 +440,26 @@ def cone_search_objects(
         Dictionary mapping coordinate names to lists of matching objects.
     """
     # we can reuse the same coordinate parsing logic as in cone_search_alerts, since the input format is the same
+    normalized_coords: dict[str, tuple[float, float]]
     if isinstance(coordinates, SkyCoord):
         if coordinates.isscalar:
-            coordinates = {
-                "coord_0": (coordinates.ra.deg, coordinates.dec.deg)
+            normalized_coords = {
+                "coord_0": (
+                    float(coordinates.ra.deg),  # type: ignore[union-attr]
+                    float(coordinates.dec.deg),  # type: ignore[union-attr]
+                )
             }
         else:
-            coordinates = {
-                f"coord_{i}": (coord.ra.deg, coord.dec.deg)
+            normalized_coords = {
+                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))  # type: ignore[union-attr]
                 for i, coord in enumerate(coordinates)
             }
     elif isinstance(coordinates, list) and all(
         isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates
     ):
-        coordinates = {name: (ra, dec) for name, ra, dec in coordinates}
+        normalized_coords = {
+            name: (float(ra), float(dec)) for name, ra, dec in coordinates
+        }
     elif isinstance(coordinates, list) and all(
         isinstance(coord, dict)
         and "name" in coord
@@ -451,14 +467,18 @@ def cone_search_objects(
         and "dec" in coord
         for coord in coordinates
     ):
-        coordinates = {
-            coord["name"]: (coord["ra"], coord["dec"]) for coord in coordinates
+        coord_list = cast(list[dict[str, Any]], coordinates)
+        normalized_coords = {
+            str(coord["name"]): (float(coord["ra"]), float(coord["dec"]))
+            for coord in coord_list
         }
     elif isinstance(coordinates, dict) and all(
         isinstance(coord, tuple) and len(coord) == 2
         for coord in coordinates.values()
     ):
-        pass  # already in the correct format
+        normalized_coords = {
+            k: (float(v[0]), float(v[1])) for k, v in coordinates.items()
+        }
     elif isinstance(coordinates, Table):
         name_col = next(
             (
@@ -486,8 +506,8 @@ def cone_search_objects(
             None,
         )
         if name_col and ra_col and dec_col:
-            coordinates = {
-                row[name_col]: (row[ra_col], row[dec_col])
+            normalized_coords = {
+                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))  # type: ignore[arg-type]
                 for row in coordinates
             }
         else:
@@ -510,9 +530,9 @@ def cone_search_objects(
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
         futures = []
         batch = []
-        for i, (name, coords) in enumerate(coordinates.items()):
+        for i, (name, coords) in enumerate(normalized_coords.items()):
             batch.append((name, coords))
-            if len(batch) == batch_size or i == len(coordinates) - 1:
+            if len(batch) == batch_size or i == len(normalized_coords) - 1:
                 batch_coords = dict(batch)
                 batch_params = {
                     "radius_arcsec": radius_arcsec,

@@ -1,7 +1,10 @@
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 # Define colors for bands
 band_colors = {
@@ -14,7 +17,7 @@ band_colors = {
 }
 
 
-def get_key_from_any(data: Any, key: str, default=None):
+def get_key_from_any(data: Any, key: str, default: Any = None) -> Any:
     # Handle both dict and classes
     if isinstance(data, dict):
         return data.get(key, default)
@@ -23,14 +26,14 @@ def get_key_from_any(data: Any, key: str, default=None):
 
 
 def plot_lightcurve(
-    alert: dict[str, Any], ax: plt.Axes | None = None, show: bool = True
-):
+    alert: dict[str, Any] | Any, ax: "Axes | None" = None, show: bool = True
+) -> None:
     """
     Plot the lightcurve for a ZTF alert.
 
     Parameters:
     -----------
-    alert : dict
+    alert : dict | Any
         The alert dictionary or model instance containing cutout data.
     """
 

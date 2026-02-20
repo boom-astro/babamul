@@ -2,6 +2,7 @@
 
 import logging
 from collections.abc import Iterator
+from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
@@ -153,7 +154,7 @@ class AlertConsumer:
             self._consumer = self._create_consumer()
         return self._consumer
 
-    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | dict]:
+    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | dict[str, Any]]:
         """Iterate over alerts from the subscribed topics.
 
         Yields:
@@ -216,14 +217,17 @@ class AlertConsumer:
                         continue
 
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
-                    if msg.topic().startswith("babamul.ztf"):  # type: ignore
-                        alert = ZtfAlert.model_validate(alert_dict)
-                    elif msg.topic().startswith("babamul.lsst"):  # type: ignore
+                    topic = msg.topic()
+                    if topic and topic.startswith("babamul.ztf"):
+                        alert: ZtfAlert | LsstAlert = ZtfAlert.model_validate(
+                            alert_dict
+                        )
+                    elif topic and topic.startswith("babamul.lsst"):
                         alert = LsstAlert.model_validate(alert_dict)
                     else:
-                        logger.error(f"Unknown topic format: {msg.topic()}")
+                        logger.error(f"Unknown topic format: {topic}")
                         continue
-                    alert.topic = msg.topic()  # type: ignore
+                    alert.topic = topic
                     yield alert
 
                 except DeserializationError as e:

@@ -1,7 +1,7 @@
 """Avro deserialization utilities for Babamul alerts."""
 
 import io
-from typing import Any
+from typing import Any, cast
 
 import fastavro
 
@@ -25,5 +25,5 @@ def deserialize_alert(data: bytes) -> dict[str, Any]:
         If the data cannot be deserialized due to schema mismatch.
     """
     reader = fastavro.reader(io.BytesIO(data))
-    result: dict[str, Any] = next(reader)
+    result = cast(dict[str, Any], next(reader))
     return result

@@ -1,7 +1,7 @@
 import gzip
 import io
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,27 +14,30 @@ from astropy.visualization import (
 )
 from scipy.ndimage import rotate
 
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+
 logger = logging.getLogger(__name__)
 
 CUTOUT_TYPES = ["Science", "Template", "Difference"]
 
 
 def plot_cutouts(
-    alert: dict[str, Any],
+    alert: dict[str, Any] | Any,
     survey: str,
     use_rotation: bool = False,
-    axes: list[plt.Axes] | None = None,
+    axes: "list[Axes] | None" = None,
     show: bool = True,
     orientation: str = "horizontal",
-    figsize: tuple | None = None,
+    figsize: tuple[float, float] | None = None,
     title: str | None = None,
-) -> list[plt.Axes]:
+) -> "list[Axes]":
     """
     Plot all three cutout images (Science, Template, Difference) for a ZTF alert.
 
     Parameters
     ----------
-    alert : dict
+    alert : dict | Any
         The alert dictionary or model instance containing cutout data.
     survey : str
         The survey name, e.g., "ZTF" or "LSST".
