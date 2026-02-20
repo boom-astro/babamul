@@ -2,7 +2,7 @@
 streams and interacting with the Babamul API.
 """
 
-from . import api, topics
+from . import api, jupyter, topics
 from .api import (
     get_alerts,
     get_cutouts,
@@ -21,7 +21,6 @@ from .exceptions import (
     ConfigurationError,
     DeserializationError,
 )
-from .jupyter import scan_alerts
 from .models import (
     LsstAlert,
     LsstCandidate,
@@ -32,6 +31,7 @@ from .models import (
 __all__ = [
     "api",
     "topics",
+    "jupyter",
     "get_alerts",
     "get_cutouts",
     "get_object",
@@ -50,7 +50,6 @@ __all__ = [
     "LsstCandidate",
     "ZtfAlert",
     "ZtfCandidate",
-    "scan_alerts",
 ]
 
 try:
