@@ -6,7 +6,7 @@ import base64
 import logging
 import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Literal, cast
+from typing import Any, Literal, cast, get_args
 
 import httpx
 from astropy.coordinates import SkyCoord
@@ -274,13 +274,13 @@ def cone_search_alerts(
         if coordinates.isscalar:
             normalized_coords = {
                 "coord_0": (
-                    float(coordinates.ra.deg),  # type: ignore[union-attr]
-                    float(coordinates.dec.deg),  # type: ignore[union-attr]
+                    float(coordinates.ra.deg),
+                    float(coordinates.dec.deg),
                 )
             }
         else:
             normalized_coords = {
-                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))  # type: ignore[union-attr]
+                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))
                 for i, coord in enumerate(coordinates)
             }
     elif isinstance(coordinates, list) and all(
@@ -337,7 +337,7 @@ def cone_search_alerts(
         )
         if name_col and ra_col and dec_col:
             normalized_coords = {
-                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))  # type: ignore[arg-type]
+                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))
                 for row in coordinates
             }
         else:
@@ -445,13 +445,13 @@ def cone_search_objects(
         if coordinates.isscalar:
             normalized_coords = {
                 "coord_0": (
-                    float(coordinates.ra.deg),  # type: ignore[union-attr]
-                    float(coordinates.dec.deg),  # type: ignore[union-attr]
+                    float(coordinates.ra.deg),
+                    float(coordinates.dec.deg),
                 )
             }
         else:
             normalized_coords = {
-                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))  # type: ignore[union-attr]
+                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))
                 for i, coord in enumerate(coordinates)
             }
     elif isinstance(coordinates, list) and all(
@@ -507,7 +507,7 @@ def cone_search_objects(
         )
         if name_col and ra_col and dec_col:
             normalized_coords = {
-                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))  # type: ignore[arg-type]
+                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))
                 for row in coordinates
             }
         else:
@@ -625,8 +625,9 @@ def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
     elif survey == "LSST":
         return LsstAlert.model_validate(data)
     else:
+        valid_surveys = ", ".join(get_args(Survey))
         raise ValueError(
-            f"Survey {survey} is not supported, must be one of: {', '.join(Survey)}"
+            f"Survey {survey} is not supported, must be one of: {valid_surveys}"
         )
 
 

@@ -1,7 +1,7 @@
 """Pydantic models for Babamul alerts."""
 
 from datetime import timezone
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -237,9 +237,7 @@ class ZtfAlert(EnrichedZtfAlert):
 
         return photometry
 
-    # Let's add a `survey` property for convenience, and use `computed_field`
-    # so it shows up in the schema and model dumps
-    @property
+    # `computed_field` makes it a property and includes it in schema/dumps
     @computed_field
     def survey(self) -> str:
         return "ZTF"
@@ -285,7 +283,7 @@ class ZtfAlert(EnrichedZtfAlert):
             self.get_cutouts()
         return plot_cutouts(
             self,
-            self.survey,
+            cast(str, self.survey),
             False,
             axes,
             show,
@@ -529,8 +527,7 @@ class LsstAlert(EnrichedLsstAlert):
 
         return photometry
 
-    # let's add a `survey` property for convenience
-    @property
+    # `computed_field` makes it a property and includes it in schema/dumps
     @computed_field
     def survey(self) -> str:
         return "LSST"
@@ -579,7 +576,7 @@ class LsstAlert(EnrichedLsstAlert):
             self.get_cutouts()
         return plot_cutouts(
             self,
-            self.survey,
+            cast(str, self.survey),
             use_rotation,
             axes,
             show,
