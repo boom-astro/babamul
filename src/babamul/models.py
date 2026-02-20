@@ -10,8 +10,8 @@ from pydantic import AliasChoices, BaseModel, Field, computed_field
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-from .cutout_utils import plot_cutouts
-from .lightcurve_utils import plot_lightcurve
+from .cutouts import plot_cutouts
+from .lightcurves import plot_lightcurve
 from .raw_models import (
     EnrichedLsstAlert,
     EnrichedZtfAlert,

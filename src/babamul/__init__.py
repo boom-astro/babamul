@@ -21,13 +21,13 @@ from .exceptions import (
     ConfigurationError,
     DeserializationError,
 )
+from .jupyter import scan_alerts
 from .models import (
     LsstAlert,
     LsstCandidate,
     ZtfAlert,
     ZtfCandidate,
 )
-from .plot_utils import scan_alerts
 
 __all__ = [
     "api",

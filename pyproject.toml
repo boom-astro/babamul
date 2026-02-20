@@ -86,7 +86,7 @@ module = "babamul.raw_models"
 ignore_errors = true
 
 [[tool.mypy.overrides]]
-module = "babamul.avro_utils"
+module = "babamul.avro"
 ignore_errors = true
 
 [[tool.mypy.overrides]]

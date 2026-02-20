@@ -6,7 +6,7 @@ from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
-from .avro_utils import deserialize_alert
+from .avro import deserialize_alert
 from .config import MAIN_KAFKA_SERVER, BabamulConfig
 from .exceptions import (
     AuthenticationError,
