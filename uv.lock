@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version == '3.12.*' and sys_platform == 'win32'",
@@ -315,6 +315,7 @@ dev = [
     { name = "ipykernel" },
     { name = "jupyter" },
     { name = "mypy" },
+    { name = "pandas" },
     { name = "papermill" },
     { name = "polars" },
     { name = "prek" },
@@ -345,6 +346,7 @@ dev = [
     { name = "ipykernel", specifier = ">=7.1.0" },
     { name = "jupyter", specifier = ">=1.1.1" },
     { name = "mypy", specifier = ">=1.0.0" },
+    { name = "pandas", specifier = ">=3.0.0" },
     { name = "papermill", specifier = ">=2.6.0" },
     { name = "polars", specifier = ">=1.37.1" },
     { name = "prek", specifier = ">=0.3.0" },
