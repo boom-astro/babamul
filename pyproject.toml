@@ -86,4 +86,7 @@ dev = [
     "dotenv>=0.9.9",
     "ipykernel>=7.1.0",
     "polars>=1.37.1",
+    "duckdb>=1.4.4",
+    "pyarrow>=23.0.0",
+    "jupyter>=1.1.1",
 ]
