@@ -1,5 +1,7 @@
 # babamul
 
+[![PyPI](https://img.shields.io/pypi/v/babamul)](https://pypi.org/project/babamul/)
+
 Python client for consuming ZTF/LSST astronomical transient alerts from Babamul Kafka streams.
 
 ## Installation
@@ -215,10 +217,3 @@ consumer = AlertConsumer(topics=["babamul.ztf.lsst-match.*"], ...)
 # All hosted alerts from both surveys
 consumer = AlertConsumer(topics=["babamul.*.*.hosted"], ...)
 ```
-
-## Requirements
-
-- Python >= 3.10
-- confluent-kafka >= 2.3.0
-- fastavro >= 1.9.0
-- pydantic >= 2.0.0
