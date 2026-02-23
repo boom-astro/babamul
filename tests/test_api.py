@@ -92,9 +92,15 @@ class TestAPIClientAlerts:
     def test_get_alerts_requires_filter(self):
         from babamul.exceptions import APIError
 
-        with pytest.raises(APIError, match="Either object_id or"):
+        with pytest.raises(
+            APIError,
+            match="API error (400): Must provide either object_id or (ra, dec, radius_arcsec) or (start_jd, end_jd)",
+        ):
             get_alerts("ZTF")
-        with pytest.raises(APIError, match="Either object_id or"):
+        with pytest.raises(
+            APIError,
+            match="API error (400): Must provide either object_id or (ra, dec, radius_arcsec) or (start_jd, end_jd)",
+        ):
             get_alerts("LSST")
 
     def test_get_ztf_alerts_by_object_id(self, ztf_object):
