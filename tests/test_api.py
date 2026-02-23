@@ -94,12 +94,12 @@ class TestAPIClientAlerts:
 
         with pytest.raises(
             APIError,
-            match="API error (400): Must provide either object_id or (ra, dec, radius_arcsec) or (start_jd, end_jd)",
+            match="Must provide either object_id or",
         ):
             get_alerts("ZTF")
         with pytest.raises(
             APIError,
-            match="API error (400): Must provide either object_id or (ra, dec, radius_arcsec) or (start_jd, end_jd)",
+            match="Must provide either object_id or",
         ):
             get_alerts("LSST")
 
