@@ -356,7 +356,7 @@ def cone_search_alerts(
     if radius_arcsec <= 0 or radius_arcsec > 600:
         raise ValueError("Radius must be between 0 and 600 arcseconds.")
 
-    # we use the /surveys/{survey}/alerts/cone_search endpoint which accepts a list of coordinates as dicts with keys "name", "ra", "dec"
+    # we use the /surveys/{survey}/alerts/cone-search endpoint which accepts a list of coordinates as dicts with keys "name", "ra", "dec"
     params = {
         key: value
         for key, value in {
@@ -391,7 +391,7 @@ def cone_search_alerts(
                     executor.submit(
                         _request,
                         "POST",
-                        f"/surveys/{survey}/alerts/cone_search",
+                        f"/surveys/{survey}/alerts/cone-search",
                         json=batch_params,
                     )
                 )
@@ -542,7 +542,7 @@ def cone_search_objects(
                     executor.submit(
                         _request,
                         "POST",
-                        f"/surveys/{survey}/objects/cone_search",
+                        f"/surveys/{survey}/objects/cone-search",
                         json=batch_params,
                     )
                 )
@@ -577,7 +577,8 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     AlertCutouts
         Cutout images (science, template, difference) as bytes.
     """
-    response = _request("GET", f"/surveys/{survey}/alerts/{candid}/cutouts")
+    params = {"candid": candid}
+    response = _request("GET", f"/surveys/{survey}/cutouts", params=params)
     data = response.get("data", response)
     return AlertCutouts(
         candid=data["candid"],
@@ -649,7 +650,7 @@ def get_photometry(survey: Survey, object_id: str) -> ObjPhotometry:
         - prv_nondetections: list of previous non-detections
         - fp_hists: list of forced photometry measurements
     """
-    # for now it's just a wrapper around get_object that only returns the photometry, but we can optimize it later if needed
+    # TODO: call the dedicated photometry endpoint once it's implemented, instead of fetching the full object
     obj = get_object(survey, object_id)
     return ObjPhotometry(
         objectId=obj.objectId,
@@ -674,10 +675,59 @@ def get_cross_matches(survey: Survey, object_id: str) -> CrossMatches:
     CrossMatches
         Cross-match information with other archival catalogs (e.g. NED, CatWISE, VSX).
     """
-    response = _request("GET", f"/surveys/{survey}/cross_matches/{object_id}")
+    response = _request(
+        "GET", f"/surveys/{survey}/objects/{object_id}/cross-matches"
+    )
     data = response.get("data", response)
 
     return CrossMatches.model_validate(data)
+
+
+def get_cross_matches_bulk(
+    survey: Survey,
+    object_ids: list[str],
+    n_threads: int = 1,
+    batch_size: int = 100,
+) -> dict[str, CrossMatches]:
+    """Get cross-matches for multiple objects in bulk.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ZTF" or "LSST").
+    object_ids : list[str]
+        List of object IDs.
+
+    Returns
+    -------
+    dict[str, CrossMatches]
+        Dictionary mapping object IDs to their cross-match information.
+    """
+    results = {}
+    if n_threads < 1 or n_threads > 12:
+        raise ValueError("Number of threads must be between 1 and 12.")
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        futures = []
+        for i in range(0, len(object_ids), batch_size):
+            batch_ids = object_ids[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    _request,
+                    "POST",
+                    f"/surveys/{survey}/objects/cross-matches",
+                    json={"object_ids": batch_ids},
+                )
+            )
+
+        for future in as_completed(futures):
+            try:
+                response = future.result()
+                data = response.get("data", {})
+                for obj_id, cm in data.items():
+                    results[obj_id] = CrossMatches.model_validate(cm)
+            except Exception as e:
+                logger.error(f"Error fetching cross-matches batch: {e}")
+    return results
 
 
 def search_objects(

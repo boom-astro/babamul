@@ -122,7 +122,7 @@ class AlertConsumer:
             "bootstrap.servers": self._config.server,
             "group.id": self._group_id,
             "auto.offset.reset": self._config.offset,
-            "enable.auto.commit": self._config.auto_commit,
+            "enable.auto.commit": str(self._config.auto_commit).lower(),
             "security.protocol": "SASL_PLAINTEXT",
             "sasl.mechanism": "SCRAM-SHA-512",
             "sasl.username": self._config.username,

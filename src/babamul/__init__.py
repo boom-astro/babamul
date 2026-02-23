@@ -26,6 +26,7 @@ from .models import (
     LsstCandidate,
     ZtfAlert,
     ZtfCandidate,
+    add_cross_matches,
 )
 
 __all__ = [
@@ -50,6 +51,7 @@ __all__ = [
     "LsstCandidate",
     "ZtfAlert",
     "ZtfCandidate",
+    "add_cross_matches",
 ]
 
 try:

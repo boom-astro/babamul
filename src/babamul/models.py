@@ -36,6 +36,7 @@ __all__ = [
     "UserProfile",
     "ZtfAlert",
     "ZtfCandidate",
+    "add_cross_matches",
 ]
 
 # --- API response models ---
@@ -82,7 +83,9 @@ class UserProfile(BaseModel):
 
 
 class NedMatch(BaseModel):
-    # objname: str
+    objname: str | None = Field(
+        None, validation_alias=AliasChoices("objname", "obj_name", "_id")
+    )
     objtype: str | None = None
     ra: float
     dec: float
@@ -163,6 +166,15 @@ class GaiaMatch(BaseModel):
     distance_arcsec: float | None = None
 
 
+class LSPSCMatch(BaseModel):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    score: float | None = None
+    mag_white: float | None = None
+    distance_arcsec: float | None = None
+
+
 class CrossMatches(BaseModel):
     """Cross-matches with other surveys."""
 
@@ -185,6 +197,12 @@ class CrossMatches(BaseModel):
     gaia: list[GaiaMatch] | None = Field(
         [],
         validation_alias=AliasChoices("gaia", "Gaia", "Gaia_DR3", "Gaia_EDR3"),
+    )
+    lspsc: list[LSPSCMatch] | None = Field(
+        [],
+        validation_alias=AliasChoices(
+            "lspsc", "LSPSC", "LegacySurveyPSCCatalog"
+        ),
     )
 
 
@@ -743,6 +761,39 @@ LsstCandidate.datetime = property(  # type: ignore[attr-defined]
 )
 
 
+def add_cross_matches(
+    alerts: list[ZtfAlert | LsstAlert], n_threads: int = 1
+) -> None:
+    """Helper function to add cross-matches to a list of alerts."""
+    from .api import get_cross_matches_bulk
+
+    # group and fetch cross-matches in bulk for efficiency, per survey
+    ztf_object_ids = [
+        a.objectId
+        for a in alerts
+        if isinstance(a, ZtfAlert) and a.cross_matches is None
+    ]
+    ztf_cross_matches = get_cross_matches_bulk(
+        "ZTF", ztf_object_ids, n_threads=n_threads
+    )
+
+    lsst_object_ids = [
+        a.objectId
+        for a in alerts
+        if isinstance(a, LsstAlert) and a.cross_matches is None
+    ]
+    lsst_cross_matches = get_cross_matches_bulk(
+        "LSST", lsst_object_ids, n_threads=n_threads
+    )
+
+    # assign cross-matches back to alerts
+    for alert in alerts:
+        if isinstance(alert, ZtfAlert):
+            alert.cross_matches = ztf_cross_matches.get(alert.objectId)
+        elif isinstance(alert, LsstAlert):
+            alert.cross_matches = lsst_cross_matches.get(alert.objectId)
+
+
 # # --- LSST API models ---
 
 
@@ -753,35 +804,29 @@ class ZtfApiAlert(BaseModel):
     properties: ZtfAlertProperties
     classifications: dict[str, float] | None = None
 
+    def fetch_full_object(self) -> ZtfAlert:
+        """Fetch the full ZTF object from the API.
 
-# class LsstApiAlert(BaseModel):
-#     candid: int
-#     objectId: str
-#     candidate: LsstCandidate
-#     properties: LsstAlertProperties
-#     classifications: dict[str, float] | None = None
+        Returns
+        -------
+        ZtfAlert
+            Full object with all available data.
+        """
+        from .api import get_object
 
-#     def fetch_full_object(self) -> LsstAlert:
-#         """Fetch the full LSST object from the API.
+        return cast(ZtfAlert, get_object("ZTF", self.objectId))
 
-#         Returns
-#         -------
-#         LsstAlert
-#             Full object with all available data.
-#         """
-#         from .api import get_object
+    def fetch_cutouts(self) -> AlertCutouts:
+        """Fetch cutouts for this alert from the API.
 
-#         return get_object("lsst", self.objectId)
+        Returns
+        -------
+        AlertCutouts
+            Cutout images (science, template, difference) as bytes.
+        """
+        from .api import get_cutouts
 
-#     def fetch_cutouts(self) -> AlertCutouts:
-#         """Fetch cutouts for this alert from the API.
-
-#         Returns
-#         -------
-#         AlertCutouts
-#             Cutout images (science, template, difference) as bytes.
-#         """
-#         from .api import get_cutouts
+        return get_cutouts("ZTF", self.candid)
 
 
 # --- LSST API models ---
