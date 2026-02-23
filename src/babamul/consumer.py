@@ -38,7 +38,7 @@ class AlertConsumer:
         auto_commit: bool = True,
         as_raw: bool = False,
     ) -> None:
-        """Initialize the alert consumer.
+        r"""Initialize the alert consumer.
 
         Parameters
         ----------
