@@ -42,8 +42,9 @@ class AlertConsumer:
         Parameters
         ----------
         topics : str | list[str]
-            Kafka topic(s) to subscribe to. Can be a string or list of strings.
-            Example: "babamul.ztf.*" or ["babamul.ztf.*", "babamul.lsst.*"]
+            Kafka topic(s) to subscribe to. Can be a string, a regex pattern, or a list of strings.
+            Example: "babamul.ztf.lsst-match.hosted", r"^babamul\.ztf\..*\.hosted$"
+            or ["babamul.ztf.lsst-match.hosted", "babamul.ztf.no-lsst-match.hosted"]
         username : str | None
             Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
         password : str | None
