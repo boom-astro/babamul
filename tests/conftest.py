@@ -1,8 +1,18 @@
 """Pytest fixtures for babamul tests."""
 
+from pathlib import Path
 from typing import Any
 
 import pytest
+from dotenv import load_dotenv
+
+
+@pytest.fixture(scope="session", autouse=True)
+def load_env() -> None:
+    """Load environment variables from .env file before running tests."""
+    env_file = Path(__file__).parent / ".env"
+    if env_file.exists():
+        load_dotenv(env_file)
 
 
 @pytest.fixture

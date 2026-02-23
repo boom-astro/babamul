@@ -40,6 +40,8 @@ dependencies = [
     "pydantic>=2.0.0",
     "matplotlib>=3.8.0",
     "scipy>=1.17.0",
+    "pandas>=3.0.0",
+    "brotli>=1.2.0",
 ]
 
 [project.urls]
@@ -75,15 +77,46 @@ strict = true
 warn_return_any = true
 warn_unused_ignores = true
 
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "babamul.raw_models"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "babamul.avro"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = [
+    "matplotlib.*",
+    "astropy.*",
+    "fastavro.*",
+    "scipy.*",
+    "numpy.*",
+    "pytest.*",
+    "httpx.*",
+    "confluent_kafka.*",
+    "IPython.*",
+    "ipywidgets.*",
+    "python_dotenv.*",
+]
+ignore_missing_imports = true
+
 [dependency-groups]
 dev = [
     "prek>=0.3.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "mypy>=1.0.0",
+    "types-requests",
+    "pandas-stubs",
+    "types-tqdm",
     "ruff>=0.1.0",
     "papermill>=2.6.0",
-    "dotenv>=0.9.9",
+    "python-dotenv>=1.0.0",
     "ipykernel>=7.1.0",
     "polars>=1.37.1",
     "duckdb>=1.4.4",
