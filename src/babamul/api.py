@@ -2,28 +2,31 @@
 
 from __future__ import annotations
 
-import os
 import base64
 import logging
-from typing import Any, Literal
+import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any, Literal, cast, get_args
 
 import httpx
+from astropy.coordinates import SkyCoord
+from astropy.table import Table
 
 from .config import get_base_url
 from .exceptions import APIAuthenticationError, APIError, APINotFoundError
 from .models import (
     AlertCutouts,
+    CrossMatches,
     LsstAlert,
-    LsstApiAlert,
     ObjectSearchResult,
+    ObjPhotometry,
     UserProfile,
     ZtfAlert,
-    ZtfApiAlert,
 )
 
 logger = logging.getLogger(__name__)
 
-Survey = Literal["ztf", "lsst"]
+Survey = Literal["ZTF", "LSST"]
 
 
 def _resolve_token() -> str:
@@ -116,7 +119,7 @@ def _request(
             status_code=response.status_code,
         )
 
-    return response.json()
+    return cast(dict[str, Any], response.json())
 
 
 def get_alerts(
@@ -132,13 +135,17 @@ def get_alerts(
     max_magpsf: float | None = None,
     min_drb: float | None = None,
     max_drb: float | None = None,
-) -> list[ZtfApiAlert | LsstApiAlert]:
+    is_rock: bool | None = None,
+    is_star: bool | None = None,
+    is_near_brightstar: bool | None = None,
+    is_stationary: bool | None = None,
+) -> list[ZtfAlert | LsstAlert]:
     """Query alerts from the API.
 
     Parameters
     ----------
     survey : Survey
-        The survey to query ("ztf" or "lsst").
+        The survey to query ("ZTF" or "LSST").
     object_id : str | None
         Filter by object ID.
     ra : float | None
@@ -159,24 +166,24 @@ def get_alerts(
         Minimum DRB (reliability) score filter.
     max_drb : float | None
         Maximum DRB score filter.
+    is_rock : bool | None
+        Filter for likely solar system objects.
+    is_star : bool | None
+        Filter for likely stellar sources.
+    is_near_brightstar : bool | None
+        Filter for sources near bright stars.
+    is_stationary : bool | None
+        Filter for likely stationary sources (not moving).
 
     Returns
     -------
-    list[ZtfApiAlert | LsstApiAlert]
+    list[ZtfAlert | LsstAlert]
         List of alerts matching the query parameters.
     """
-    if object_id and (ra is not None or dec is not None or radius_arcsec is not None):
-        logger.warning(
-            "Both object_id and (ra, dec, radius_arcsec) provided; "
-            "Only object_id will be used."
-        )
-    elif not object_id and (ra is None or dec is None or radius_arcsec is None):
-        raise ValueError(
-            "Either object_id or (ra, dec, radius_arcsec) must be provided"
-        )
 
     params = {
-        key: value for key, value in {
+        key: value
+        for key, value in {
             "object_id": object_id,
             "ra": ra,
             "dec": dec,
@@ -187,13 +194,372 @@ def get_alerts(
             "max_magpsf": max_magpsf,
             "min_drb": min_drb,
             "max_drb": max_drb,
-        }.items() if value is not None
+            "is_rock": is_rock,
+            "is_star": is_star,
+            "is_near_brightstar": is_near_brightstar,
+            "is_stationary": is_stationary,
+        }.items()
+        if value is not None
     }
 
     response = _request("GET", f"/surveys/{survey}/alerts", params=params)
     data = response.get("data", [])
-    alert_model = ZtfApiAlert if survey == "ztf" else LsstApiAlert
+    alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
     return [alert_model.model_validate(alert) for alert in data]
+
+
+def cone_search_alerts(
+    survey: Survey,
+    coordinates: SkyCoord
+    | list[tuple[str, float, float]]
+    | list[dict[str, Any]]
+    | dict[str, tuple[float, float]]
+    | Table,
+    radius_arcsec: float,
+    *,
+    start_jd: float | None = None,
+    end_jd: float | None = None,
+    min_magpsf: float | None = None,
+    max_magpsf: float | None = None,
+    min_drb: float | None = None,
+    max_drb: float | None = None,
+    is_rock: bool | None = None,
+    is_star: bool | None = None,
+    is_near_brightstar: bool | None = None,
+    is_stationary: bool | None = None,
+    n_threads: int = 4,
+    batch_size: int = 500,
+) -> dict[str, list[ZtfAlert | LsstAlert]]:
+    """Query alerts from the API.
+
+    Parameters
+    ----------
+    survey : Survey
+        The survey to query ("ZTF" or "LSST").
+    coordinates: SkyCoord | list[tuple[str, float, float]] | list[dict[str, Any]]
+        Coordinates for the cone search.
+    radius_arcsec : float
+        Cone search radius in arcseconds (max 600).
+    radius_arcsec : float | None
+        Cone search radius in arcseconds (max 600).
+    start_jd : float | None
+        Start Julian Date filter.
+    end_jd : float | None
+        End Julian Date filter.
+    min_magpsf : float | None
+        Minimum PSF magnitude filter.
+    max_magpsf : float | None
+        Maximum PSF magnitude filter.
+    min_drb : float | None
+        Minimum DRB (reliability) score filter.
+    max_drb : float | None
+        Maximum DRB score filter.
+    is_rock : bool | None
+        Filter for likely solar system objects.
+    is_star : bool | None
+        Filter for likely stellar sources.
+    is_near_brightstar : bool | None
+        Filter for sources near bright stars.
+    is_stationary : bool | None
+        Filter for likely stationary sources (not moving).
+
+    Returns
+    -------
+    list[ZtfAlert | LsstAlert]
+        List of alerts matching the query parameters.
+    """
+    # coordinates can be a SkyCoord (with name), a tuple of (name, ra, dec) or a dict with keys "name", "ra", "dec"
+    normalized_coords: dict[str, tuple[float, float]]
+    if isinstance(coordinates, SkyCoord):
+        if coordinates.isscalar:
+            normalized_coords = {
+                "coord_0": (
+                    float(coordinates.ra.deg),
+                    float(coordinates.dec.deg),
+                )
+            }
+        else:
+            normalized_coords = {
+                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))
+                for i, coord in enumerate(coordinates)
+            }
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates
+    ):
+        normalized_coords = {
+            name: (float(ra), float(dec)) for name, ra, dec in coordinates
+        }
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, dict)
+        and "name" in coord
+        and "ra" in coord
+        and "dec" in coord
+        for coord in coordinates
+    ):
+        coord_list = cast(list[dict[str, Any]], coordinates)
+        normalized_coords = {
+            str(coord["name"]): (float(coord["ra"]), float(coord["dec"]))
+            for coord in coord_list
+        }
+    elif isinstance(coordinates, dict) and all(
+        isinstance(coord, tuple) and len(coord) == 2
+        for coord in coordinates.values()
+    ):
+        normalized_coords = {
+            k: (float(v[0]), float(v[1])) for k, v in coordinates.items()
+        }
+    # let's be a little flexible, and allow aliases of "name", "ra", "dec" in the table, as long as we can find them
+    elif isinstance(coordinates, Table):
+        name_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["name", "id", "objname"]
+            ),
+            None,
+        )
+        ra_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["ra", "ra_deg", "ra_j2000"]
+            ),
+            None,
+        )
+        dec_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower()
+                in ["dec", "dec_deg", "dec_j2000", "decl", "declination"]
+            ),
+            None,
+        )
+        if name_col and ra_col and dec_col:
+            normalized_coords = {
+                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))
+                for row in coordinates
+            }
+        else:
+            raise ValueError(
+                "Table must have columns for name, ra, and dec (or their aliases)."
+            )
+    else:
+        raise ValueError(
+            "Invalid coordinates format. Must be a SkyCoord, list of (name, ra, dec) tuples, or list of dicts with keys 'name', 'ra', 'dec'."
+        )
+
+    if batch_size < 1 or batch_size > 5000:
+        raise ValueError("Batch size must be between 1 and 5000.")
+    if n_threads < 1 or n_threads > 12:
+        raise ValueError("Number of threads must be between 1 and 12.")
+    if radius_arcsec <= 0 or radius_arcsec > 600:
+        raise ValueError("Radius must be between 0 and 600 arcseconds.")
+
+    # we use the /surveys/{survey}/alerts/cone-search endpoint which accepts a list of coordinates as dicts with keys "name", "ra", "dec"
+    params = {
+        key: value
+        for key, value in {
+            "radius_arcsec": radius_arcsec,
+            "start_jd": start_jd,
+            "end_jd": end_jd,
+            "min_magpsf": min_magpsf,
+            "max_magpsf": max_magpsf,
+            "min_drb": min_drb,
+            "max_drb": max_drb,
+            "is_rock": is_rock,
+            "is_star": is_star,
+            "is_near_brightstar": is_near_brightstar,
+            "is_stationary": is_stationary,
+        }.items()
+        if value is not None
+    }
+    # params["coordinates"] = coordinates
+    params["radius_arcsec"] = radius_arcsec
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        futures = []
+        batch = []
+        for i, (name, coords) in enumerate(normalized_coords.items()):
+            batch.append((name, coords))
+            if len(batch) == batch_size or i == len(normalized_coords) - 1:
+                batch_coords = dict(batch)
+                batch_params: dict[str, Any] = params.copy()
+                batch_params["coordinates"] = batch_coords
+                futures.append(
+                    executor.submit(
+                        _request,
+                        "POST",
+                        f"/surveys/{survey}/alerts/cone-search",
+                        json=batch_params,
+                    )
+                )
+                batch = []
+
+        for future in as_completed(futures):
+            try:
+                response = future.result()
+                data = response.get("data", [])
+                alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
+                for name, alerts in data.items():
+                    results[name] = [
+                        alert_model.model_validate(alert) for alert in alerts
+                    ]
+            except Exception as e:
+                logger.error(f"Error processing cone search batch: {e}")
+
+    return results
+
+
+def cone_search_objects(
+    survey: Survey,
+    coordinates: SkyCoord
+    | list[tuple[str, float, float]]
+    | list[dict[str, Any]]
+    | dict[str, tuple[float, float]]
+    | Table,
+    radius_arcsec: float,
+    n_threads: int = 4,
+    batch_size: int = 500,
+) -> dict[str, list[ObjectSearchResult]]:
+    """Cone search for objects in the API.
+
+    Parameters
+    ----------
+    survey : Survey
+        The survey to query ("ZTF" or "LSST").
+    coordinates: SkyCoord | list[tuple[str, float, float]] | list[dict[str, Any]]
+        Coordinates for the cone search.
+    radius_arcsec : float
+        Cone search radius in arcseconds (max 600).
+
+    Returns
+    -------
+    dict[str, list[ObjectSearchResult]]
+        Dictionary mapping coordinate names to lists of matching objects.
+    """
+    # we can reuse the same coordinate parsing logic as in cone_search_alerts, since the input format is the same
+    normalized_coords: dict[str, tuple[float, float]]
+    if isinstance(coordinates, SkyCoord):
+        if coordinates.isscalar:
+            normalized_coords = {
+                "coord_0": (
+                    float(coordinates.ra.deg),
+                    float(coordinates.dec.deg),
+                )
+            }
+        else:
+            normalized_coords = {
+                f"coord_{i}": (float(coord.ra.deg), float(coord.dec.deg))
+                for i, coord in enumerate(coordinates)
+            }
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, tuple) and len(coord) == 3 for coord in coordinates
+    ):
+        normalized_coords = {
+            name: (float(ra), float(dec)) for name, ra, dec in coordinates
+        }
+    elif isinstance(coordinates, list) and all(
+        isinstance(coord, dict)
+        and "name" in coord
+        and "ra" in coord
+        and "dec" in coord
+        for coord in coordinates
+    ):
+        coord_list = cast(list[dict[str, Any]], coordinates)
+        normalized_coords = {
+            str(coord["name"]): (float(coord["ra"]), float(coord["dec"]))
+            for coord in coord_list
+        }
+    elif isinstance(coordinates, dict) and all(
+        isinstance(coord, tuple) and len(coord) == 2
+        for coord in coordinates.values()
+    ):
+        normalized_coords = {
+            k: (float(v[0]), float(v[1])) for k, v in coordinates.items()
+        }
+    elif isinstance(coordinates, Table):
+        name_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["name", "id", "objname"]
+            ),
+            None,
+        )
+        ra_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower() in ["ra", "ra_deg", "ra_j2000"]
+            ),
+            None,
+        )
+        dec_col = next(
+            (
+                col
+                for col in coordinates.colnames
+                if col.lower()
+                in ["dec", "dec_deg", "dec_j2000", "decl", "declination"]
+            ),
+            None,
+        )
+        if name_col and ra_col and dec_col:
+            normalized_coords = {
+                str(row[name_col]): (float(row[ra_col]), float(row[dec_col]))
+                for row in coordinates
+            }
+        else:
+            raise ValueError(
+                "Table must have columns for name, ra, and dec (or their aliases)."
+            )
+    else:
+        raise ValueError(
+            "Invalid coordinates format. Must be a SkyCoord, list of (name, ra, dec) tuples, or list of dicts with keys 'name', 'ra', 'dec'."
+        )
+
+    if batch_size < 1 or batch_size > 5000:
+        raise ValueError("Batch size must be between 1 and 5000.")
+    if n_threads < 1 or n_threads > 12:
+        raise ValueError("Number of threads must be between 1 and 12.")
+    if radius_arcsec <= 0 or radius_arcsec > 600:
+        raise ValueError("Radius must be between 0 and 600 arcseconds.")
+
+    results = {}
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        futures = []
+        batch = []
+        for i, (name, coords) in enumerate(normalized_coords.items()):
+            batch.append((name, coords))
+            if len(batch) == batch_size or i == len(normalized_coords) - 1:
+                batch_coords = dict(batch)
+                batch_params = {
+                    "radius_arcsec": radius_arcsec,
+                    "coordinates": batch_coords,
+                }
+                futures.append(
+                    executor.submit(
+                        _request,
+                        "POST",
+                        f"/surveys/{survey}/objects/cone-search",
+                        json=batch_params,
+                    )
+                )
+                batch = []
+
+        for future in as_completed(futures):
+            try:
+                response = future.result()
+                data = response.get("data", {})
+                for name, objects in data.items():
+                    results[name] = [
+                        ObjectSearchResult.model_validate(obj)
+                        for obj in objects
+                    ]
+            except Exception as e:
+                logger.error(f"Error processing cone search batch: {e}")
+    return results
 
 
 def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
@@ -202,7 +568,7 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     Parameters
     ----------
     survey : Survey
-        Survey ("ztf" or "lsst").
+        Survey ("ZTF" or "LSST").
     candid : int
         Candidate ID of the alert.
 
@@ -211,7 +577,8 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     AlertCutouts
         Cutout images (science, template, difference) as bytes.
     """
-    response = _request("GET", f"/surveys/{survey}/alerts/{candid}/cutouts")
+    params = {"candid": candid}
+    response = _request("GET", f"/surveys/{survey}/cutouts", params=params)
     data = response.get("data", response)
     return AlertCutouts(
         candid=data["candid"],
@@ -238,7 +605,7 @@ def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
     Parameters
     ----------
     survey : Survey
-        Survey ("ztf" or "lsst").
+        Survey ("ZTF" or "LSST").
     object_id : str
         Object ID.
 
@@ -254,12 +621,118 @@ def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
         if data.get(key) and isinstance(data[key], str):
             data[key] = base64.b64decode(data[key])
 
-    if survey == "ztf":
+    if survey == "ZTF":
         return ZtfAlert.model_validate(data)
-    return LsstAlert.model_validate(data)
+    elif survey == "LSST":
+        return LsstAlert.model_validate(data)
+    else:
+        valid_surveys = ", ".join(get_args(Survey))
+        raise ValueError(
+            f"Survey {survey} is not supported, must be one of: {valid_surveys}"
+        )
 
 
-def search_objects(object_id: str, limit: int = 10) -> list[ObjectSearchResult]:
+def get_photometry(survey: Survey, object_id: str) -> ObjPhotometry:
+    """Get photometry history for an object.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ZTF" or "LSST").
+    object_id : str
+        Object ID.
+
+    Returns
+    -------
+    dict[str, Photometry]
+        Dictionary containing photometry information, including:
+        - prv_candidates: list of previous detections
+        - prv_nondetections: list of previous non-detections
+        - fp_hists: list of forced photometry measurements
+    """
+    # TODO: call the dedicated photometry endpoint once it's implemented, instead of fetching the full object
+    obj = get_object(survey, object_id)
+    return ObjPhotometry(
+        objectId=obj.objectId,
+        prv_candidates=getattr(obj, "prv_candidates", []),
+        prv_nondetections=getattr(obj, "prv_nondetections", []),
+        fp_hists=getattr(obj, "fp_hists", []),
+    )
+
+
+def get_cross_matches(survey: Survey, object_id: str) -> CrossMatches:
+    """Get cross-matches for an object.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ZTF" or "LSST").
+    object_id : str
+        Object ID.
+
+    Returns
+    -------
+    CrossMatches
+        Cross-match information with other archival catalogs (e.g. NED, CatWISE, VSX).
+    """
+    response = _request(
+        "GET", f"/surveys/{survey}/objects/{object_id}/cross-matches"
+    )
+    data = response.get("data", response)
+
+    return CrossMatches.model_validate(data)
+
+
+def get_cross_matches_bulk(
+    survey: Survey,
+    object_ids: list[str],
+    n_threads: int = 1,
+    batch_size: int = 100,
+) -> dict[str, CrossMatches]:
+    """Get cross-matches for multiple objects in bulk.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ZTF" or "LSST").
+    object_ids : list[str]
+        List of object IDs.
+
+    Returns
+    -------
+    dict[str, CrossMatches]
+        Dictionary mapping object IDs to their cross-match information.
+    """
+    results = {}
+    if n_threads < 1 or n_threads > 12:
+        raise ValueError("Number of threads must be between 1 and 12.")
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        futures = []
+        for i in range(0, len(object_ids), batch_size):
+            batch_ids = object_ids[i : i + batch_size]
+            futures.append(
+                executor.submit(
+                    _request,
+                    "POST",
+                    f"/surveys/{survey}/objects/cross-matches",
+                    json={"object_ids": batch_ids},
+                )
+            )
+
+        for future in as_completed(futures):
+            try:
+                response = future.result()
+                data = response.get("data", {})
+                for obj_id, cm in data.items():
+                    results[obj_id] = CrossMatches.model_validate(cm)
+            except Exception as e:
+                logger.error(f"Error fetching cross-matches batch: {e}")
+    return results
+
+
+def search_objects(
+    object_id: str, limit: int = 10
+) -> list[ObjectSearchResult]:
     """Search for objects by partial ID.
 
     Parameters

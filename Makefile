@@ -12,3 +12,8 @@ format: ## Automatically format files.
 test: ## Test the code with pytest.
 	@echo "🚀 Testing code with pytest"
 	@uv run pytest
+
+.PHONY: check-types
+check-types: ## Check types with mypy.
+	@echo "🚀 Checking types with mypy"
+	@uv run mypy src/babamul

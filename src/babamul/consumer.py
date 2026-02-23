@@ -2,11 +2,12 @@
 
 import logging
 from collections.abc import Iterator
+from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
-from .avro_utils import deserialize_alert
-from .config import MAIN_KAFKA_SERVER, BabamulConfig
+from .avro import deserialize_alert
+from .config import BabamulConfig
 from .exceptions import (
     AuthenticationError,
     BabamulConnectionError,
@@ -30,7 +31,7 @@ class AlertConsumer:
         topics: TopicType | list[TopicType] | str | list[str] = "",
         username: str | None = None,
         password: str | None = None,
-        server: str = MAIN_KAFKA_SERVER,
+        server: str | None = None,
         group_id: str | None = None,
         offset: str = "latest",
         timeout: float | None = None,
@@ -49,9 +50,9 @@ class AlertConsumer:
             Babamul Kafka username. Can also be set via BABAMUL_KAFKA_USERNAME env var.
         password : str | None
             Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
-        server : str
-            Kafka bootstrap server. Defaults to Babamul's server.
-            Can also be set via BABAMUL_SERVER env var.
+        server : str | None
+            Kafka bootstrap server. Uses BABAMUL_KAFKA_SERVER env var if not provided,
+            or defaults to Babamul's main server if env var is unset/empty.
         group_id : str | None
             Kafka consumer group ID. Auto-generated if not provided.
         offset : str
@@ -122,7 +123,7 @@ class AlertConsumer:
             "bootstrap.servers": self._config.server,
             "group.id": self._group_id,
             "auto.offset.reset": self._config.offset,
-            "enable.auto.commit": self._config.auto_commit,
+            "enable.auto.commit": str(self._config.auto_commit).lower(),
             "security.protocol": "SASL_PLAINTEXT",
             "sasl.mechanism": "SCRAM-SHA-512",
             "sasl.username": self._config.username,
@@ -154,7 +155,7 @@ class AlertConsumer:
             self._consumer = self._create_consumer()
         return self._consumer
 
-    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | dict]:
+    def __iter__(self) -> Iterator[ZtfAlert | LsstAlert | dict[str, Any]]:
         """Iterate over alerts from the subscribed topics.
 
         Yields:
@@ -217,13 +218,17 @@ class AlertConsumer:
                         continue
 
                     # if the topic starts with babamul.ztf, use BabamulZtfAlert
-                    if msg.topic().startswith("babamul.ztf"):  # type: ignore
-                        alert = ZtfAlert.model_validate(alert_dict)
-                    elif msg.topic().startswith("babamul.lsst"):  # type: ignore
+                    topic = msg.topic()
+                    if topic and topic.startswith("babamul.ztf"):
+                        alert: ZtfAlert | LsstAlert = ZtfAlert.model_validate(
+                            alert_dict
+                        )
+                    elif topic and topic.startswith("babamul.lsst"):
                         alert = LsstAlert.model_validate(alert_dict)
                     else:
-                        logger.error(f"Unknown topic format: {msg.topic()}")
+                        logger.error(f"Unknown topic format: {topic}")
                         continue
+                    alert.topic = topic
                     yield alert
 
                 except DeserializationError as e:

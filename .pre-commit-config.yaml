@@ -11,11 +11,10 @@ repos:
     rev: "v0.6.3"
     hooks:
       - id: ruff
-        args: [--exit-non-zero-on-fix, --config=pyproject.toml]
-        types: [python, jupyter]
+        args: [--fix, --unsafe-fixes]
+        types_or: [python, jupyter]
       - id: ruff-format
-        args: [--config=pyproject.toml]
-        types: [python, jupyter]
+        types_or: [python, jupyter]
 
   - repo: https://github.com/kynan/nbstripout
     rev: "0.7.1"

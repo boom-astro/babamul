@@ -1,8 +1,10 @@
 """Pydantic raw models for ZTF and LSST alerts, generated from avro schemas."""
 
 from enum import Enum
+from typing import Any
 
-from pydantic import AliasChoices, BaseModel, Field
+import numpy as np
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
 class Band(str, Enum):
@@ -12,6 +14,57 @@ class Band(str, Enum):
     z = "z"
     y = "y"
     u = "u"
+
+
+LSST_ZP = 8.9
+ZTF_ZP = 23.9
+
+
+def flux2mag(flux: float, flux_err: float, zp: float) -> tuple[float, float]:
+    """Convert flux and flux error to magnitude and magnitude error.
+
+    Parameters
+    ----------
+    flux : float
+        The flux value.
+    flux_err : float
+        The error on the flux value.
+    zp : float
+        The zero point magnitude for the survey.
+
+    Returns
+    -------
+    mag : float
+        The magnitude corresponding to the flux.
+    mag_err : float
+        The error on the magnitude.
+    """
+    if flux <= 0:
+        return float("inf"), 0.0  # non-detection or negative flux
+    mag = zp - 2.5 * np.log10(flux)
+    mag_err = (2.5 / np.log(10)) * (flux_err / flux)
+    return mag, mag_err
+
+
+def fluxerr2diffmaglim(flux_err: float, zp: float) -> float:
+    """Convert flux error to difference magnitude limit.
+
+    Parameters
+    ----------
+    flux_err : float
+        The error on the flux value.
+    zp : float
+        The zero point magnitude for the survey.
+
+    Returns
+    -------
+    diffmaglim : float
+        The difference magnitude limit corresponding to the flux error.
+    """
+    if flux_err <= 0:
+        return float("inf")  # non-detection or negative flux error
+    diffmaglim = zp - 2.5 * np.log10(3 * flux_err)  # 3-sigma limit
+    return float(diffmaglim)
 
 
 class ZtfCandidate(BaseModel):
@@ -98,11 +151,50 @@ class ZtfCandidate(BaseModel):
     band: Band
 
 
-class ZtfPhotometry(BaseModel):
+# class ZtfPhotometry(BaseModel):
+#     jd: float
+#     magpsf: float | None = None
+#     sigmapsf: float | None = None
+#     diffmaglim: float
+#     psfFlux: float | None = None
+#     psfFluxErr: float
+#     band: Band
+#     zp: float | None = None
+#     ra: float | None = None
+#     dec: float | None = None
+#     snr: float | None = None
+
+
+class AlertPhotometry(BaseModel):
+    jd: float
+    psfFlux: float | None = None
+    psfFluxErr: float
+    band: Band
+    ra: float
+    dec: float
+
+
+class NonDetectionPhotometry(BaseModel):
+    jd: float
+    psfFluxErr: float
+    band: Band
+
+
+class ForcedPhotometry(BaseModel):
+    jd: float
+    psfFlux: float | None = None
+    psfFluxErr: float
+    band: Band
+
+
+# let's rewrite ZtfPhotoetry, that gets automatically deserialized from AlertPhotometry, or NonDetectionPhotometry, or ForcedPhotometry
+# on deserialize, we compute the magpsf, sigmapsf, diffmaglim, and snr, using the flux2mag and fluxerr2diffmaglim functions, and the appropriate zero point for ZTF or LSST
+class Photometry(BaseModel):
     jd: float
     magpsf: float | None = None
     sigmapsf: float | None = None
-    diffmaglim: float
+    isdiffpos: bool | None = None
+    diffmaglim: float | None = None
     psfFlux: float | None = None
     psfFluxErr: float
     band: Band
@@ -110,7 +202,98 @@ class ZtfPhotometry(BaseModel):
     ra: float | None = None
     dec: float | None = None
     snr: float | None = None
-    programid: int = Field(..., ge=-(2**31), le=(2**31 - 1))
+
+    @classmethod
+    def from_alert_photometry(
+        cls, photometry: dict[str, Any], survey_zp: float
+    ) -> "Photometry":
+        validated_photometry = AlertPhotometry.model_validate(photometry)
+        psfFlux = validated_photometry.psfFlux or 0.0
+        psfFluxErr = validated_photometry.psfFluxErr or 1.0
+        magpsf, sigmapsf = flux2mag(
+            abs(psfFlux * 1e-9),
+            psfFluxErr * 1e-9,
+            survey_zp,
+        )
+        snr = abs(psfFlux) / psfFluxErr if psfFluxErr > 0 else 0
+        return cls(
+            jd=validated_photometry.jd,
+            magpsf=magpsf,
+            sigmapsf=sigmapsf,
+            isdiffpos=psfFlux > 0,
+            psfFlux=validated_photometry.psfFlux,
+            psfFluxErr=validated_photometry.psfFluxErr,
+            band=validated_photometry.band,
+            zp=survey_zp,
+            ra=validated_photometry.ra,
+            dec=validated_photometry.dec,
+            snr=snr,
+        )
+
+    @classmethod
+    def from_non_detection_photometry(
+        cls, photometry: dict[str, Any], survey_zp: float
+    ) -> "Photometry":
+        validated_photometry = NonDetectionPhotometry.model_validate(
+            photometry
+        )
+        diffmaglim = fluxerr2diffmaglim(
+            validated_photometry.psfFluxErr * 1e-9, survey_zp
+        )
+        return cls(
+            jd=validated_photometry.jd,
+            magpsf=None,
+            sigmapsf=None,
+            isdiffpos=None,
+            diffmaglim=diffmaglim,
+            psfFlux=None,
+            psfFluxErr=validated_photometry.psfFluxErr,
+            band=validated_photometry.band,
+            zp=survey_zp,
+            ra=None,
+            dec=None,
+            snr=None,
+        )
+
+    @classmethod
+    def from_forced_photometry(
+        cls, photometry: dict[str, Any], survey_zp: float
+    ) -> "Photometry":
+        validated_photometry = ForcedPhotometry.model_validate(photometry)
+        psfFlux = validated_photometry.psfFlux or 0.0
+        psfFluxErr = validated_photometry.psfFluxErr or 1.0
+        snr = abs(psfFlux) / psfFluxErr if psfFluxErr > 0 else 0
+        if snr < 3:
+            magpsf = None
+            sigmapsf = None
+            diffmaglim = fluxerr2diffmaglim(psfFluxErr * 1e-9, survey_zp)
+        else:
+            magpsf, sigmapsf = flux2mag(
+                abs(psfFlux * 1e-9),
+                psfFluxErr * 1e-9,
+                survey_zp,
+            )
+            diffmaglim = None
+        return cls(
+            jd=validated_photometry.jd,
+            magpsf=magpsf,
+            sigmapsf=sigmapsf,
+            diffmaglim=diffmaglim,
+            psfFlux=validated_photometry.psfFlux,
+            psfFluxErr=validated_photometry.psfFluxErr,
+            band=validated_photometry.band,
+            zp=survey_zp,
+            ra=None,
+            dec=None,
+            snr=snr,
+        )
+
+    @property
+    def datetime(self) -> Any:  # Returns datetime object from astropy
+        from astropy import timezone
+        from astropy.time import Time
+
+        return Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)
 
 
 class BandRateProperties(BaseModel):
@@ -148,26 +331,54 @@ class ZtfAlertProperties(BaseModel):
     multisurvey_photstats: PerBandProperties | None
 
 
-class LsstPhotometry(BaseModel):
-    jd: float
-    magpsf: float | None
-    sigmapsf: float | None
-    diffmaglim: float
-    psfFlux: float | None
-    psfFluxErr: float
-    band: Band
-    zp: float | None = None
-    ra: float | None
-    dec: float | None
-    snr: float | None
+# class LsstPhotometry(BaseModel):
+#     jd: float
+#     magpsf: float | None
+#     sigmapsf: float | None
+#     diffmaglim: float
+#     psfFlux: float | None
+#     psfFluxErr: float
+#     band: Band
+#     zp: float | None = None
+#     ra: float | None
+#     dec: float | None
+#     snr: float | None
 
 
 class LsstMatch(BaseModel):
-    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
+    objectId: str = Field(
+        ..., validation_alias=AliasChoices("objectId", "object_id")
+    )
     ra: float
     dec: float
-    prv_candidates: list[LsstPhotometry]
-    fp_hists: list[LsstPhotometry]
+    prv_candidates: list[Photometry]
+    fp_hists: list[Photometry]
+
+    @field_validator("prv_candidates", mode="before")
+    @classmethod
+    def transform_photometry(cls, v: Any) -> Any:
+        """Transform AlertPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_alert_photometry(item, LSST_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
+
+    @field_validator("fp_hists", mode="before")
+    @classmethod
+    def transform_forced_photometry(cls, v: Any) -> Any:
+        """Transform ForcedPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_forced_photometry(item, LSST_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
 
 
 class ZtfSurveyMatches(BaseModel):
@@ -175,23 +386,66 @@ class ZtfSurveyMatches(BaseModel):
 
 
 class EnrichedZtfAlert(BaseModel):
-    candid: int = Field(..., alias=AliasChoices("candid", "_id"))
-    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
+    candid: int = Field(..., validation_alias=AliasChoices("candid", "_id"))
+    objectId: str = Field(
+        ..., validation_alias=AliasChoices("objectId", "object_id")
+    )
     candidate: ZtfCandidate
-    prv_candidates: list[ZtfPhotometry]
-    prv_nondetections: list[ZtfPhotometry]
-    fp_hists: list[ZtfPhotometry]
+    prv_candidates: list[Photometry] | None = None
+    prv_nondetections: list[Photometry] | None = None
+    fp_hists: list[Photometry] | None = None
     properties: ZtfAlertProperties
-    survey_matches: ZtfSurveyMatches | None
+    survey_matches: ZtfSurveyMatches | None = None
     cutoutScience: bytes | None = Field(
-        None, alias=AliasChoices("cutoutScience", "cutout_science")
+        None, validation_alias=AliasChoices("cutoutScience", "cutout_science")
     )
     cutoutTemplate: bytes | None = Field(
-        None, alias=AliasChoices("cutoutTemplate", "cutout_template")
+        None,
+        validation_alias=AliasChoices("cutoutTemplate", "cutout_template"),
     )
     cutoutDifference: bytes | None = Field(
-        None, alias=AliasChoices("cutoutDifference", "cutout_difference")
+        None,
+        validation_alias=AliasChoices("cutoutDifference", "cutout_difference"),
     )
+
+    @field_validator("prv_candidates", mode="before")
+    @classmethod
+    def transform_photometry(cls, v: Any) -> Any:
+        """Transform AlertPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_alert_photometry(item, ZTF_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
+
+    @field_validator("prv_nondetections", mode="before")
+    @classmethod
+    def transform_non_detections(cls, v):
+        """Transform NonDetectionPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_non_detection_photometry(item, ZTF_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
+
+    @field_validator("fp_hists", mode="before")
+    @classmethod
+    def transform_forced_photometry(cls, v):
+        """Transform ForcedPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_forced_photometry(item, ZTF_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
 
 
 class LsstCandidate(BaseModel):
@@ -267,7 +521,9 @@ class LsstCandidate(BaseModel):
     pixelFlags_injected_template: bool | None
     pixelFlags_injected_templateCenter: bool | None
     glint_trail: bool | None
-    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
+    objectId: str = Field(
+        ..., validation_alias=AliasChoices("objectId", "object_id")
+    )
     jd: float
     magpsf: float
     sigmapsf: float
@@ -283,18 +539,60 @@ class LsstCandidate(BaseModel):
 class LsstAlertProperties(BaseModel):
     rock: bool
     stationary: bool
-    star: bool | None
+    star: bool | None = None
+    near_brightstar: bool | None = None
     photstats: PerBandProperties
     multisurvey_photstats: PerBandProperties
 
 
 class ZtfMatch(BaseModel):
-    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
+    objectId: str = Field(
+        ..., validation_alias=AliasChoices("objectId", "object_id")
+    )
     ra: float
     dec: float
-    prv_candidates: list[ZtfPhotometry]
-    prv_nondetections: list[ZtfPhotometry]
-    fp_hists: list[ZtfPhotometry]
+    prv_candidates: list[Photometry]
+    prv_nondetections: list[Photometry]
+    fp_hists: list[Photometry]
+
+    @field_validator("prv_candidates", mode="before")
+    @classmethod
+    def transform_photometry(cls, v: Any) -> Any:
+        """Transform AlertPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_alert_photometry(item, ZTF_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
+
+    @field_validator("prv_nondetections", mode="before")
+    @classmethod
+    def transform_non_detections(cls, v: Any) -> Any:
+        """Transform NonDetectionPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_non_detection_photometry(item, ZTF_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
+
+    @field_validator("fp_hists", mode="before")
+    @classmethod
+    def transform_forced_photometry(cls, v: Any) -> Any:
+        """Transform ForcedPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_forced_photometry(item, ZTF_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
 
 
 class LsstSurveyMatches(BaseModel):
@@ -302,19 +600,49 @@ class LsstSurveyMatches(BaseModel):
 
 
 class EnrichedLsstAlert(BaseModel):
-    candid: int = Field(..., alias=AliasChoices("candid", "_id"))
-    objectId: str = Field(..., alias=AliasChoices("objectId", "object_id"))
+    candid: int = Field(..., validation_alias=AliasChoices("candid", "_id"))
+    objectId: str = Field(
+        ..., validation_alias=AliasChoices("objectId", "object_id")
+    )
     candidate: LsstCandidate
-    prv_candidates: list[LsstPhotometry]
-    fp_hists: list[LsstPhotometry]
+    prv_candidates: list[Photometry] | None = None
+    fp_hists: list[Photometry] | None = None
     properties: LsstAlertProperties
     cutoutScience: bytes | None = Field(
-        None, alias=AliasChoices("cutoutScience", "cutout_science")
+        None, validation_alias=AliasChoices("cutoutScience", "cutout_science")
     )
     cutoutTemplate: bytes | None = Field(
-        None, alias=AliasChoices("cutoutTemplate", "cutout_template")
+        None,
+        validation_alias=AliasChoices("cutoutTemplate", "cutout_template"),
     )
     cutoutDifference: bytes | None = Field(
-        None, alias=AliasChoices("cutoutDifference", "cutout_difference")
+        None,
+        validation_alias=AliasChoices("cutoutDifference", "cutout_difference"),
     )
-    survey_matches: LsstSurveyMatches | None
+    survey_matches: LsstSurveyMatches | None = None
+
+    @field_validator("prv_candidates", mode="before")
+    @classmethod
+    def transform_photometry(cls, v: Any) -> Any:
+        """Transform AlertPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_alert_photometry(item, LSST_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v
+
+    @field_validator("fp_hists", mode="before")
+    @classmethod
+    def transform_forced_photometry(cls, v: Any) -> Any:
+        """Transform ForcedPhotometry dicts to Photometry instances."""
+        if isinstance(v, list):
+            return [
+                Photometry.from_forced_photometry(item, LSST_ZP)
+                if isinstance(item, dict)
+                else item
+                for item in v
+            ]
+        return v

@@ -12,7 +12,9 @@ from babamul.models import LsstAlert, ZtfAlert
 class TestAlertConsumerInit:
     """Tests for AlertConsumer initialization."""
 
-    def test_missing_credentials(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_missing_credentials(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test error when credentials are missing."""
         monkeypatch.delenv("BABAMUL_KAFKA_USERNAME", raising=False)
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
@@ -26,25 +28,37 @@ class TestAlertConsumerInit:
         with pytest.raises(ValueError, match="Username is required"):
             AlertConsumer(password="pass", topics=["test.topic"])
 
-    def test_babamul_email_as_username(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_babamul_email_as_username(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test error when email is used as username."""
         monkeypatch.delenv("BABAMUL_KAFKA_USERNAME", raising=False)
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
-        with pytest.raises(ValueError,
-                match="Do not use your babamul account email as the username. "
-                      "Please provide the Kafka credentials created on the Babamul website profile page."
+        with pytest.raises(
+            ValueError,
+            match="Do not use your babamul account email as the username. "
+            "Please provide the Kafka credentials created on the Babamul website profile page.",
         ):
-            AlertConsumer(username="babamul@email.com", password="pass", topics=["test.topic"])
+            AlertConsumer(
+                username="babamul@email.com",
+                password="pass",
+                topics=["test.topic"],
+            )
 
-    def test_bad_username_format(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_bad_username_format(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test error when username does not start with 'babamul-'."""
         monkeypatch.delenv("BABAMUL_KAFKA_USERNAME", raising=False)
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
-        with pytest.raises(ValueError,
-                match="Invalid username format. Kafka username should start with 'babamul-'. "
-                      "Please provide the Kafka credentials created on the Babamul website profile page."
+        with pytest.raises(
+            ValueError,
+            match="Invalid username format. Kafka username should start with 'babamul-'. "
+            "Please provide the Kafka credentials created on the Babamul website profile page.",
         ):
-            AlertConsumer(username="username", password="pass", topics=["test.topic"])
+            AlertConsumer(
+                username="username", password="pass", topics=["test.topic"]
+            )
 
     def test_missing_password(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test error when password is missing."""
@@ -53,15 +67,22 @@ class TestAlertConsumerInit:
         with pytest.raises(ValueError, match="Password is required"):
             AlertConsumer(username="babamul-user", topics=["test.topic"])
 
-    def test_api_token_as_password(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_api_token_as_password(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test error when API token is used as password."""
         monkeypatch.delenv("BABAMUL_KAFKA_USERNAME", raising=False)
         monkeypatch.delenv("BABAMUL_KAFKA_PASSWORD", raising=False)
-        with pytest.raises(ValueError,
-                match="Do not use your babamul API token as the password. "
-                      "Please provide the Kafka credentials created on the Babamul website profile page."
+        with pytest.raises(
+            ValueError,
+            match="Do not use your babamul API token as the password. "
+            "Please provide the Kafka credentials created on the Babamul website profile page.",
         ):
-            AlertConsumer(username="babamul-user", password="bbml_12345", topics=["test.topic"])
+            AlertConsumer(
+                username="babamul-user",
+                password="bbml_12345",
+                topics=["test.topic"],
+            )
 
     def test_missing_topic(self) -> None:
         """Test error when topic is missing."""

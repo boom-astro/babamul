@@ -2,7 +2,7 @@
 streams and interacting with the Babamul API.
 """
 
-from . import api, topics
+from . import api, jupyter, topics
 from .api import (
     get_alerts,
     get_cutouts,
@@ -24,45 +24,37 @@ from .exceptions import (
 from .models import (
     LsstAlert,
     LsstCandidate,
-    LsstPhotometry,
     ZtfAlert,
     ZtfCandidate,
-    ZtfPhotometry,
+    add_cross_matches,
 )
 
-try:
-    from ._version import __version__
-except ImportError:
-    __version__ = "0.0.0+unknown"
-
 __all__ = [
-    # Modules
     "api",
     "topics",
-    # Main classes
-    "AlertConsumer",
-    # API functions
+    "jupyter",
     "get_alerts",
     "get_cutouts",
     "get_object",
     "get_profile",
     "search_objects",
-    # Models
-    "ZtfAlert",
-    "ZtfPhotometry",
-    "ZtfCandidate",
-    "LsstCandidate",
-    "LsstPhotometry",
-    "LsstAlert",
-    # Exceptions
-    "BabamulError",
+    "AlertConsumer",
+    "APIAuthenticationError",
+    "APIError",
+    "APINotFoundError",
     "AuthenticationError",
     "BabamulConnectionError",
-    "DeserializationError",
+    "BabamulError",
     "ConfigurationError",
-    "APIError",
-    "APIAuthenticationError",
-    "APINotFoundError",
-    # Version
-    "__version__",
+    "DeserializationError",
+    "LsstAlert",
+    "LsstCandidate",
+    "ZtfAlert",
+    "ZtfCandidate",
+    "add_cross_matches",
 ]
+
+try:
+    from ._version import __version__
+except ImportError:
+    __version__ = "0.0.0+unknown"

@@ -21,7 +21,9 @@ def get_base_url() -> str:
     """
     env = os.getenv("BABAMUL_ENV", "production").lower()
     if env not in API_URLS:
-        raise ValueError(f"Invalid BABAMUL_ENV value: {env}. Must be one of {list(API_URLS.keys())}.")
+        raise ValueError(
+            f"Invalid BABAMUL_ENV value: {env}. Must be one of {list(API_URLS.keys())}."
+        )
     return API_URLS[env]
 
 
@@ -58,7 +60,7 @@ class BabamulConfig:
             Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
         server : str | None
             Kafka bootstrap server. Defaults to Babamul's server.
-            Can also be set via BABAMUL_SERVER env var.
+            Can also be set via BABAMUL_KAFKA_SERVER env var.
         group_id : str | None
             Consumer group ID
         offset : str
@@ -80,8 +82,10 @@ class BabamulConfig:
         """
         final_username = username or os.environ.get("BABAMUL_KAFKA_USERNAME")
         final_password = password or os.environ.get("BABAMUL_KAFKA_PASSWORD")
-        final_server = server or os.environ.get(
-            "BABAMUL_SERVER", MAIN_KAFKA_SERVER
+        final_server = (
+            server
+            or os.environ.get("BABAMUL_KAFKA_SERVER")
+            or MAIN_KAFKA_SERVER
         )
         if not final_username:
             raise ValueError(
