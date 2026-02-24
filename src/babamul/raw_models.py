@@ -150,9 +150,9 @@ class ZtfCandidate(BaseModel):
     snr_psf: float | None = Field(
         None, validation_alias=AliasChoices("snr_psf", "snr")
     )
-    apFlux: float | None
-    apFluxErr: float | None
-    snr_ap: float | None
+    apFlux: float | None = None
+    apFluxErr: float | None = None
+    snr_ap: float | None = None
     band: Band
 
 
