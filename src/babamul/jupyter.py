@@ -9,11 +9,23 @@ from babamul.models import LsstAlert, ZtfAlert
 
 
 def scan_alerts(
-    alerts: list[ZtfAlert | LsstAlert], include_cross_matches: bool = False
+    alerts: list[ZtfAlert | LsstAlert],
+    include_survey_matches: bool = True,
+    include_nondetections: bool = True,
 ) -> None:
     # Create buttons and output area
     prev_button = widgets.Button(description="← Previous")
     next_button = widgets.Button(description="Next →")
+    survey_matches_toggle = widgets.Checkbox(
+        value=include_survey_matches,
+        description="Show survey matches",
+        indent=False,
+    )
+    nondetections_toggle = widgets.Checkbox(
+        value=include_nondetections,
+        description="Show non-detections",
+        indent=False,
+    )
     info_label = widgets.HTML()
     output = widgets.Output()
 
@@ -35,7 +47,8 @@ def scan_alerts(
             output.clear_output(wait=True)
             try:
                 alert.show(
-                    include_cross_matches=include_cross_matches
+                    include_survey_matches=survey_matches_toggle.value,
+                    include_nondetections=nondetections_toggle.value,
                 )  # This will display the cutouts and metadata
             except Exception as e:
                 print(f"Error displaying alert: {e}")
@@ -53,10 +66,18 @@ def scan_alerts(
             current_idx[0] += 1
             update_display()
 
+    def on_toggle_change(change: Any) -> None:
+        if change["name"] == "value":
+            update_display()
+
     prev_button.on_click(on_prev)
     next_button.on_click(on_next)
+    survey_matches_toggle.observe(on_toggle_change)
+    nondetections_toggle.observe(on_toggle_change)
     # Layout
-    buttons = widgets.HBox([prev_button, next_button])
+    buttons = widgets.HBox(
+        [prev_button, next_button, survey_matches_toggle, nondetections_toggle]
+    )
     container = widgets.VBox([info_label, buttons, output])
     display(container)  # type: ignore[no-untyped-call]
     update_display()

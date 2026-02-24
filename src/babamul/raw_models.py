@@ -147,22 +147,13 @@ class ZtfCandidate(BaseModel):
     maggaiabright: float | None
     psfFlux: float
     psfFluxErr: float
-    snr: float
+    snr_psf: float | None = Field(
+        None, validation_alias=AliasChoices("snr_psf", "snr")
+    )
+    apFlux: float | None = None
+    apFluxErr: float | None = None
+    snr_ap: float | None = None
     band: Band
-
-
-# class ZtfPhotometry(BaseModel):
-#     jd: float
-#     magpsf: float | None = None
-#     sigmapsf: float | None = None
-#     diffmaglim: float
-#     psfFlux: float | None = None
-#     psfFluxErr: float
-#     band: Band
-#     zp: float | None = None
-#     ra: float | None = None
-#     dec: float | None = None
-#     snr: float | None = None
 
 
 class AlertPhotometry(BaseModel):
@@ -329,20 +320,6 @@ class ZtfAlertProperties(BaseModel):
     stationary: bool
     photstats: PerBandProperties
     multisurvey_photstats: PerBandProperties | None
-
-
-# class LsstPhotometry(BaseModel):
-#     jd: float
-#     magpsf: float | None
-#     sigmapsf: float | None
-#     diffmaglim: float
-#     psfFlux: float | None
-#     psfFluxErr: float
-#     band: Band
-#     zp: float | None = None
-#     ra: float | None
-#     dec: float | None
-#     snr: float | None
 
 
 class LsstMatch(BaseModel):
@@ -534,6 +511,9 @@ class LsstCandidate(BaseModel):
     sigmagap: float
     jdstarthist: float | None = None
     ndethist: int | None = None
+    snr_psf: float | None = None
+    snr_ap: float | None = None
+    chipsf: float | None = None
 
 
 class LsstAlertProperties(BaseModel):
