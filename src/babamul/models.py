@@ -368,12 +368,20 @@ class ZtfAlert(EnrichedZtfAlert):
         return self.cross_matches
 
     def plot_lightcurve(
-        self, ax: "Axes | None" = None, show: bool = True
+        self,
+        include_survey_matches: bool = True,
+        include_nondetections: bool = True,
+        ax: "Axes | None" = None,
+        show: bool = True,
     ) -> None:
         """Plot the lightcurve for this alert.
 
         Parameters
         ----------
+        include_survey_matches : bool, default=True
+            Whether to include photometry from survey matches.
+        include_nondetections : bool, default=True
+            Whether to include non-detection upper limits.
         ax : matplotlib.axes.Axes, optional
             Axis to plot on. If None, creates new figure.
         show : bool, default=True
@@ -390,7 +398,13 @@ class ZtfAlert(EnrichedZtfAlert):
             self.prv_candidates = photometry_data.prv_candidates
             self.fp_hists = photometry_data.fp_hists
             self.prv_nondetections = photometry_data.prv_nondetections
-        plot_lightcurve(self, ax=ax, show=show)
+        plot_lightcurve(
+            self,
+            include_survey_matches=include_survey_matches,
+            include_nondetections=include_nondetections,
+            ax=ax,
+            show=show,
+        )
 
     def plot_cross_matches(
         self, ax: "Axes | None" = None, show: bool = True
@@ -440,64 +454,46 @@ class ZtfAlert(EnrichedZtfAlert):
 
     def show(
         self,
+        include_survey_matches: bool = True,
+        include_nondetections: bool = True,
         orientation: str = "horizontal",
-        include_cross_matches: bool = False,
     ) -> None:
         """Display both cutouts and lightcurve for this alert."""
-        if not include_cross_matches:
-            if orientation == "horizontal":
-                fig = plt.figure(figsize=(12, 6))
-                gs = fig.add_gridspec(
-                    3, 2, width_ratios=[1, 2], height_ratios=[1, 1, 1]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[1, 0])
-                ax3 = fig.add_subplot(gs[2, 0])
-                ax4 = fig.add_subplot(gs[:, 1])
-            else:
-                fig = plt.figure(figsize=(10, 10))
-                gs = fig.add_gridspec(
-                    2, 3, width_ratios=[1, 1, 1], height_ratios=[1, 2]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[0, 1])
-                ax3 = fig.add_subplot(gs[0, 2])
-                ax4 = fig.add_subplot(gs[1, :])
-            self.plot_cutouts(
-                orientation=orientation, axes=[ax1, ax2, ax3], show=False
+        if orientation == "horizontal":
+            fig = plt.figure(figsize=(12, 6))
+            gs = fig.add_gridspec(
+                3, 2, width_ratios=[1, 2], height_ratios=[1, 1, 1]
             )
-            self.plot_lightcurve(ax=ax4, show=False)
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[1, 0])
+            ax3 = fig.add_subplot(gs[2, 0])
+            ax4 = fig.add_subplot(gs[:, 1])
         else:
-            # in both orientations, the crossmatches should be on their own row,
-            # under the cutouts and lightcurve, so we can just use a 2x3 grid
-            # and span the crossmatch plot across all 3 columns
-            if orientation == "horizontal":
-                fig = plt.figure(figsize=(16, 10))
-                gs = fig.add_gridspec(
-                    3, 3, width_ratios=[1, 2, 1], height_ratios=[1, 2, 1]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[1, 0])
-                ax3 = fig.add_subplot(gs[2, 0])
-                ax4 = fig.add_subplot(gs[0:2, 1])
-                fig.add_subplot(gs[2, :])
-            else:
-                fig = plt.figure(figsize=(12, 12))
-                gs = fig.add_gridspec(
-                    3, 3, width_ratios=[1, 1, 1], height_ratios=[1, 2, 1]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[0, 1])
-                ax3 = fig.add_subplot(gs[0, 2])
-                ax4 = fig.add_subplot(gs[1, :])
-                fig.add_subplot(gs[2, :])
-            self.plot_cutouts(
-                orientation=orientation, axes=[ax1, ax2, ax3], show=False
+            fig = plt.figure(figsize=(10, 10))
+            gs = fig.add_gridspec(
+                2, 3, width_ratios=[1, 1, 1], height_ratios=[1, 2]
             )
-            self.plot_lightcurve(ax=ax4, show=False)
-            # Display cross-match info
-            self.get_cross_matches()
-        plt.suptitle(f"{self.objectId}", fontsize=16, fontweight="bold")
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax3 = fig.add_subplot(gs[0, 2])
+            ax4 = fig.add_subplot(gs[1, :])
+        self.plot_cutouts(
+            orientation=orientation, axes=[ax1, ax2, ax3], show=False
+        )
+        self.plot_lightcurve(
+            include_survey_matches=include_survey_matches,
+            include_nondetections=include_nondetections,
+            ax=ax4,
+            show=False,
+        )
+        title = f"{self.objectId}"
+        if (
+            include_survey_matches
+            and self.survey_matches
+            and self.survey_matches.lsst
+        ):
+            title += f" (LSST {self.survey_matches.lsst.objectId})"
+        plt.suptitle(title, fontsize=16, fontweight="bold")
         plt.tight_layout()
         plt.show()
 
@@ -667,12 +663,20 @@ class LsstAlert(EnrichedLsstAlert):
         return self.cross_matches
 
     def plot_lightcurve(
-        self, ax: "Axes | None" = None, show: bool = True
+        self,
+        include_survey_matches: bool = True,
+        include_nondetections: bool = True,
+        ax: "Axes | None" = None,
+        show: bool = True,
     ) -> None:
         """Plot the lightcurve for this alert.
 
         Parameters
         ----------
+        include_survey_matches : bool, default=True
+            Whether to include photometry from survey matches.
+        include_nondetections : bool, default=True
+            Whether to include non-detection upper limits.
         ax : matplotlib.axes.Axes, optional
             Axis to plot on. If None, creates new figure.
         show : bool, default=True
@@ -684,7 +688,13 @@ class LsstAlert(EnrichedLsstAlert):
             photometry_data = get_photometry_from_api("LSST", self.objectId)
             self.prv_candidates = photometry_data.prv_candidates
             self.fp_hists = photometry_data.fp_hists
-        plot_lightcurve(self, ax=ax, show=show)
+        plot_lightcurve(
+            self,
+            include_survey_matches=include_survey_matches,
+            include_nondetections=include_nondetections,
+            ax=ax,
+            show=show,
+        )
 
     def show_lightcurve(self) -> None:
         """Display the lightcurve in a new matplotlib figure."""
@@ -692,64 +702,47 @@ class LsstAlert(EnrichedLsstAlert):
 
     def show(
         self,
+        include_survey_matches: bool = True,
+        include_nondetections: bool = True,
         orientation: str = "horizontal",
-        include_cross_matches: bool = False,
     ) -> None:
         """Display both cutouts and lightcurve for this alert."""
-        if not include_cross_matches:
-            if orientation == "horizontal":
-                fig = plt.figure(figsize=(12, 6))
-                gs = fig.add_gridspec(
-                    3, 2, width_ratios=[1, 2], height_ratios=[1, 1, 1]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[1, 0])
-                ax3 = fig.add_subplot(gs[2, 0])
-                ax4 = fig.add_subplot(gs[:, 1])
-            else:
-                fig = plt.figure(figsize=(10, 10))
-                gs = fig.add_gridspec(
-                    2, 3, width_ratios=[1, 1, 1], height_ratios=[1, 2]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[0, 1])
-                ax3 = fig.add_subplot(gs[0, 2])
-                ax4 = fig.add_subplot(gs[1, :])
-            self.plot_cutouts(
-                orientation=orientation, axes=[ax1, ax2, ax3], show=False
+        if orientation == "horizontal":
+            fig = plt.figure(figsize=(12, 6))
+            gs = fig.add_gridspec(
+                3, 2, width_ratios=[1, 2], height_ratios=[1, 1, 1]
             )
-            self.plot_lightcurve(ax=ax4, show=False)
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[1, 0])
+            ax3 = fig.add_subplot(gs[2, 0])
+            ax4 = fig.add_subplot(gs[:, 1])
         else:
-            # in both orientations, the crossmatches should be on their own row,
-            # under the cutouts and lightcurve, so we can just use a 2x3 grid
-            # and span the crossmatch plot across all 3 columns
-            if orientation == "horizontal":
-                fig = plt.figure(figsize=(16, 10))
-                gs = fig.add_gridspec(
-                    3, 3, width_ratios=[1, 2, 1], height_ratios=[1, 2, 1]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[1, 0])
-                ax3 = fig.add_subplot(gs[2, 0])
-                ax4 = fig.add_subplot(gs[0:2, 1])
-                fig.add_subplot(gs[2, :])
-            else:
-                fig = plt.figure(figsize=(12, 12))
-                gs = fig.add_gridspec(
-                    3, 3, width_ratios=[1, 1, 1], height_ratios=[1, 2, 1]
-                )
-                ax1 = fig.add_subplot(gs[0, 0])
-                ax2 = fig.add_subplot(gs[0, 1])
-                ax3 = fig.add_subplot(gs[0, 2])
-                ax4 = fig.add_subplot(gs[1, :])
-                fig.add_subplot(gs[2, :])
-            self.plot_cutouts(
-                orientation=orientation, axes=[ax1, ax2, ax3], show=False
+            fig = plt.figure(figsize=(10, 10))
+            gs = fig.add_gridspec(
+                2, 3, width_ratios=[1, 1, 1], height_ratios=[1, 2]
             )
-            self.plot_lightcurve(ax=ax4, show=False)
-            # Display cross-match info
-            self.get_cross_matches()
-        plt.suptitle(f"{self.objectId}", fontsize=16, fontweight="bold")
+            ax1 = fig.add_subplot(gs[0, 0])
+            ax2 = fig.add_subplot(gs[0, 1])
+            ax3 = fig.add_subplot(gs[0, 2])
+            ax4 = fig.add_subplot(gs[1, :])
+        self.plot_cutouts(
+            orientation=orientation, axes=[ax1, ax2, ax3], show=False
+        )
+        self.plot_lightcurve(
+            include_survey_matches=include_survey_matches,
+            include_nondetections=include_nondetections,
+            ax=ax4,
+            show=False,
+        )
+
+        title = f"LSST {self.objectId}"
+        if (
+            include_survey_matches
+            and self.survey_matches
+            and self.survey_matches.ztf
+        ):
+            title += f" ({self.survey_matches.ztf.objectId})"
+        plt.suptitle(title, fontsize=16, fontweight="bold")
         plt.tight_layout()
         plt.show()
 
@@ -789,9 +782,13 @@ def add_cross_matches(
     # assign cross-matches back to alerts
     for alert in alerts:
         if isinstance(alert, ZtfAlert):
-            alert.cross_matches = ztf_cross_matches.get(alert.objectId)
+            alert.cross_matches = ztf_cross_matches.get(
+                alert.objectId, CrossMatches()
+            )
         elif isinstance(alert, LsstAlert):
-            alert.cross_matches = lsst_cross_matches.get(alert.objectId)
+            alert.cross_matches = lsst_cross_matches.get(
+                alert.objectId, CrossMatches()
+            )
 
 
 # # --- LSST API models ---

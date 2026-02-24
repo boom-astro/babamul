@@ -16,6 +16,8 @@ band_colors = {
     "u": "blue",
 }
 
+surveys = ["ztf", "lsst"]
+
 
 def get_key_from_any(data: Any, key: str, default: Any = None) -> Any:
     # Handle both dict and classes
@@ -25,24 +27,11 @@ def get_key_from_any(data: Any, key: str, default: Any = None) -> Any:
         return getattr(data, key, default)
 
 
-def plot_lightcurve(
-    alert: dict[str, Any] | Any, ax: "Axes | None" = None, show: bool = True
-) -> None:
-    """
-    Plot the lightcurve for a ZTF alert.
-
-    Parameters:
-    -----------
-    alert : dict | Any
-        The alert dictionary or model instance containing cutout data.
-    """
-
-    # Combine current and previous detections
-    all_detections = []
-
-    # Add previous detections
+# to avoid duplication, let's write some helper functions that prepare the data for each type of lightcurve
+def get_prv_candidates(alert: Any):
+    data = []
     for prv in get_key_from_any(alert, "prv_candidates", []):
-        all_detections.append(
+        data.append(
             {
                 "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
                 "mag": get_key_from_any(prv, "magpsf", 0),
@@ -51,8 +40,13 @@ def plot_lightcurve(
                 "lim": False,
             }
         )
+    return data
+
+
+def get_prv_nondetections(alert: Any):
+    data = []
     for lim in get_key_from_any(alert, "prv_nondetections", []):
-        all_detections.append(
+        data.append(
             {
                 "mjd": get_key_from_any(lim, "jd", 0) - 2400000.5,
                 "mag": get_key_from_any(lim, "diffmaglim", 0),
@@ -61,10 +55,15 @@ def plot_lightcurve(
                 "lim": True,
             }
         )
+    return data
+
+
+def get_fp_hists(alert: Any):
+    data = []
     for fp in get_key_from_any(alert, "fp_hists", []):
         snr = get_key_from_any(fp, "snr", 0)
         if snr and snr > 3:
-            all_detections.append(
+            data.append(
                 {
                     "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
                     "mag": get_key_from_any(fp, "magpsf", 0),
@@ -74,7 +73,7 @@ def plot_lightcurve(
                 }
             )
         elif get_key_from_any(fp, "diffmaglim") is not None:
-            all_detections.append(
+            data.append(
                 {
                     "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
                     "mag": get_key_from_any(fp, "diffmaglim", 0),
@@ -83,8 +82,127 @@ def plot_lightcurve(
                     "lim": True,
                 }
             )
+    return data
+
+
+def get_survey_matches(alert: Any) -> list[dict[str, Any]]:
+    data = []
+    survey_matches = get_key_from_any(alert, "survey_matches", {})
+    for survey in surveys:
+        match = get_key_from_any(survey_matches, survey, None)
+        if match is None:
+            continue
+        # match also has a prv_candidates, nondetections, and fp_hists
+        data.extend(get_prv_candidates(match))
+        data.extend(get_prv_nondetections(match))
+        data.extend(get_fp_hists(match))
+    return data
+
+
+def plot_lightcurve(
+    alert: dict[str, Any] | Any,
+    include_survey_matches: bool = True,
+    include_nondetections: bool = True,
+    ax: "Axes | None" = None,
+    show: bool = True,
+) -> None:
+    """
+    Plot the lightcurve for a ZTF alert, including survey matches photometry.
+
+    Parameters:
+    -----------
+    alert : dict | Any
+        The alert dictionary or model instance containing cutout data.
+    include_survey_matches : bool, optional
+        Whether to include photometry from survey matches. Default is True.
+    include_nondetections : bool, optional
+        Whether to include non-detection upper limits. Default is True.
+    ax : matplotlib.axes.Axes, optional
+        The axes to plot on. If None, a new figure and axes will be created.
+    show : bool, optional
+        Whether to display the plot immediately. Default is True.
+    """
+
+    # Combine current and previous detections
+    all_detections = []
+
+    # to avoid duplication, let's write some helper functions that prepare the data for each type of lightcurve
+    def get_prv_candidates(alert):
+        data = []
+        for prv in get_key_from_any(alert, "prv_candidates", []):
+            data.append(
+                {
+                    "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
+                    "mag": get_key_from_any(prv, "magpsf", 0),
+                    "magerr": get_key_from_any(prv, "sigmapsf", 0.1),
+                    "band": get_key_from_any(prv, "band", "unknown"),
+                    "lim": False,
+                }
+            )
+        return data
+
+    def get_prv_nondetections(alert):
+        data = []
+        for lim in get_key_from_any(alert, "prv_nondetections", []):
+            data.append(
+                {
+                    "mjd": get_key_from_any(lim, "jd", 0) - 2400000.5,
+                    "mag": get_key_from_any(lim, "diffmaglim", 0),
+                    "magerr": 0.3,  # arbitrary error for limits
+                    "band": get_key_from_any(lim, "band", "unknown"),
+                    "lim": True,
+                }
+            )
+        return data
+
+    def get_fp_hists(alert):
+        data = []
+        for fp in get_key_from_any(alert, "fp_hists", []):
+            snr = get_key_from_any(fp, "snr", 0)
+            if snr and snr > 3:
+                data.append(
+                    {
+                        "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
+                        "mag": get_key_from_any(fp, "magpsf", 0),
+                        "magerr": get_key_from_any(fp, "sigmapsf", 0.1),
+                        "band": get_key_from_any(fp, "band", "unknown"),
+                        "lim": False,
+                    }
+                )
+            elif get_key_from_any(fp, "diffmaglim") is not None:
+                data.append(
+                    {
+                        "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
+                        "mag": get_key_from_any(fp, "diffmaglim", 0),
+                        "magerr": 0.3,
+                        "band": get_key_from_any(fp, "band", "unknown"),
+                        "lim": True,
+                    }
+                )
+        return data
+
+    def get_survey_matches(alert):
+        data = []
+        survey_matches = get_key_from_any(alert, "survey_matches", {})
+        for survey in surveys:
+            match = get_key_from_any(survey_matches, survey, None)
+            if match is None:
+                continue
+            # match also has a prv_candidates, nondetections, and fp_hists
+            data.extend(get_prv_candidates(match))
+            data.extend(get_prv_nondetections(match))
+            data.extend(get_fp_hists(match))
+        return data
+
+    all_detections.extend(get_prv_candidates(alert))
+    all_detections.extend(get_prv_nondetections(alert))
+    all_detections.extend(get_fp_hists(alert))
+    if include_survey_matches:
+        all_detections.extend(get_survey_matches(alert))
 
     df = pd.DataFrame(all_detections)
+    if not include_nondetections:
+        df = df[~df["lim"]]
 
     # Plot
     if ax is None:
@@ -128,10 +246,18 @@ def plot_lightcurve(
     ax.grid(True, alpha=0.3)
 
     if show:
-        ax.set_title(
-            f"Lightcurve for {alert['objectId']}",
-            fontsize=14,
-            fontweight="bold",
-        )
+        title = f"Lightcurve for {get_key_from_any(alert, 'objectId', 'Unknown Object')}"
+        if include_survey_matches:
+            survey_matches = get_key_from_any(alert, "survey_matches", {})
+            match_ids = []
+            for survey in surveys:
+                match = get_key_from_any(survey_matches, survey, None)
+                if match is not None:
+                    match_id = get_key_from_any(match, "objectId", None)
+                    if match_id is not None:
+                        match_ids.append(f"{survey}: {match_id}")
+            if match_ids:
+                title += " (Matches: " + ", ".join(match_ids) + ")"
+        ax.set_title(title, fontsize=14, fontweight="bold")
         plt.tight_layout()
         plt.show()
