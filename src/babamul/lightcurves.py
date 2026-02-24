@@ -36,7 +36,7 @@ def _normalize_band(band: Any) -> str:
 
 
 # to avoid duplication, let's write some helper functions that prepare the data for each type of lightcurve
-def get_prv_candidates(alert: Any):
+def get_prv_candidates(alert: dict[str, Any] | Any):
     data = []
     for prv in get_key_from_any(alert, "prv_candidates", []):
         data.append(
@@ -51,7 +51,7 @@ def get_prv_candidates(alert: Any):
     return data
 
 
-def get_prv_nondetections(alert: Any):
+def get_prv_nondetections(alert: dict[str, Any] | Any):
     data = []
     for lim in get_key_from_any(alert, "prv_nondetections", []):
         data.append(
@@ -66,7 +66,7 @@ def get_prv_nondetections(alert: Any):
     return data
 
 
-def get_fp_hists(alert: Any):
+def get_fp_hists(alert: dict[str, Any] | Any):
     data = []
     for fp in get_key_from_any(alert, "fp_hists", []):
         snr = get_key_from_any(fp, "snr", 0)
@@ -93,16 +93,18 @@ def get_fp_hists(alert: Any):
     return data
 
 
-def get_survey_matches(alert: Any) -> list[dict[str, Any]]:
+def get_survey_matches(alert: dict[str, Any] | Any) -> list[dict[str, Any]]:
     data = []
     survey_matches = get_key_from_any(alert, "survey_matches", {})
     for survey in surveys:
         match = get_key_from_any(survey_matches, survey, None)
         if match is None:
             continue
-        # match also has a prv_candidates, nondetections, and fp_hists
+        # match also has a prv_candidates and fp_hists.
+        # Only ZTF matches are expected to expose prv_nondetections.
         data.extend(get_prv_candidates(match))
-        data.extend(get_prv_nondetections(match))
+        if survey == "ztf":
+            data.extend(get_prv_nondetections(match))
         data.extend(get_fp_hists(match))
     return data
 
@@ -133,80 +135,6 @@ def plot_lightcurve(
 
     # Combine current and previous detections
     all_detections = []
-
-    # to avoid duplication, let's write some helper functions that prepare the data for each type of lightcurve
-    def get_prv_candidates(alert):
-        data = []
-        for prv in get_key_from_any(alert, "prv_candidates", []):
-            snr = get_key_from_any(
-                prv, "snr_psf", get_key_from_any(prv, "snr", 0)
-            )
-            if snr and snr > 3:
-                data.append(
-                    {
-                        "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
-                        "mag": get_key_from_any(prv, "magpsf", 0),
-                        "magerr": get_key_from_any(prv, "sigmapsf", 0.1),
-                        "band": get_key_from_any(prv, "band", "unknown"),
-                        "lim": False,
-                    }
-                )
-        return data
-
-    def get_prv_nondetections(alert):
-        data = []
-        for lim in get_key_from_any(alert, "prv_nondetections", []):
-            data.append(
-                {
-                    "mjd": get_key_from_any(lim, "jd", 0) - 2400000.5,
-                    "mag": get_key_from_any(lim, "diffmaglim", 0),
-                    "magerr": 0.3,  # arbitrary error for limits
-                    "band": get_key_from_any(lim, "band", "unknown"),
-                    "lim": True,
-                }
-            )
-        return data
-
-    def get_fp_hists(alert):
-        data = []
-        for fp in get_key_from_any(alert, "fp_hists", []):
-            snr = get_key_from_any(
-                fp, "snr_psf", get_key_from_any(fp, "snr", 0)
-            )
-            if snr and snr > 3:
-                data.append(
-                    {
-                        "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
-                        "mag": get_key_from_any(fp, "magpsf", 0),
-                        "magerr": get_key_from_any(fp, "sigmapsf", 0.1),
-                        "band": get_key_from_any(fp, "band", "unknown"),
-                        "lim": False,
-                    }
-                )
-            elif get_key_from_any(fp, "diffmaglim") is not None:
-                data.append(
-                    {
-                        "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
-                        "mag": get_key_from_any(fp, "diffmaglim", 0),
-                        "magerr": 0.3,
-                        "band": get_key_from_any(fp, "band", "unknown"),
-                        "lim": True,
-                    }
-                )
-        return data
-
-    def get_survey_matches(alert):
-        data = []
-        survey_matches = get_key_from_any(alert, "survey_matches", {})
-        for survey in surveys:
-            match = get_key_from_any(survey_matches, survey, None)
-            if match is None:
-                continue
-            # match also has a prv_candidates, nondetections, and fp_hists
-            data.extend(get_prv_candidates(match))
-            data.extend(get_prv_nondetections(match))
-            data.extend(get_fp_hists(match))
-        return data
 
     all_detections.extend(get_prv_candidates(alert))
     all_detections.extend(get_prv_nondetections(alert))
