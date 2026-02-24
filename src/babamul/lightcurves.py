@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 import matplotlib.pyplot as plt
@@ -25,6 +26,13 @@ def get_key_from_any(data: Any, key: str, default: Any = None) -> Any:
         return data.get(key, default)
     else:
         return getattr(data, key, default)
+
+
+def _normalize_band(band: Any) -> str:
+    """Normalize a band value to a plain string, handling Enum instances."""
+    if isinstance(band, Enum):
+        return band.value
+    return str(band)
 
 
 # to avoid duplication, let's write some helper functions that prepare the data for each type of lightcurve
@@ -130,15 +138,19 @@ def plot_lightcurve(
     def get_prv_candidates(alert):
         data = []
         for prv in get_key_from_any(alert, "prv_candidates", []):
-            data.append(
-                {
-                    "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
-                    "mag": get_key_from_any(prv, "magpsf", 0),
-                    "magerr": get_key_from_any(prv, "sigmapsf", 0.1),
-                    "band": get_key_from_any(prv, "band", "unknown"),
-                    "lim": False,
-                }
+            snr = get_key_from_any(
+                prv, "snr_psf", get_key_from_any(prv, "snr", 0)
             )
+            if snr and snr > 3:
+                data.append(
+                    {
+                        "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
+                        "mag": get_key_from_any(prv, "magpsf", 0),
+                        "magerr": get_key_from_any(prv, "sigmapsf", 0.1),
+                        "band": get_key_from_any(prv, "band", "unknown"),
+                        "lim": False,
+                    }
+                )
         return data
 
     def get_prv_nondetections(alert):
@@ -158,7 +170,9 @@ def plot_lightcurve(
     def get_fp_hists(alert):
         data = []
         for fp in get_key_from_any(alert, "fp_hists", []):
-            snr = get_key_from_any(fp, "snr", 0)
+            snr = get_key_from_any(
+                fp, "snr_psf", get_key_from_any(fp, "snr", 0)
+            )
             if snr and snr > 3:
                 data.append(
                     {
@@ -201,6 +215,8 @@ def plot_lightcurve(
         all_detections.extend(get_survey_matches(alert))
 
     df = pd.DataFrame(all_detections)
+    if not df.empty:
+        df["band"] = df["band"].apply(_normalize_band)
     if not include_nondetections:
         df = df[~df["lim"]]
 
@@ -240,6 +256,7 @@ def plot_lightcurve(
             )
 
     ax.invert_yaxis()
+    ax.ticklabel_format(axis="x", style="plain", useOffset=False)
     ax.set_xlabel("MJD", fontsize=12)
     ax.set_ylabel("AB Mag", fontsize=12)
     ax.legend(loc="upper right")
