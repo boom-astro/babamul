@@ -2,7 +2,7 @@
 streams and interacting with the Babamul API.
 """
 
-from . import api, jupyter, topics
+from . import api, topics
 from .api import (
     get_alerts,
     get_cutouts,
@@ -53,6 +53,20 @@ __all__ = [
     "ZtfCandidate",
     "add_cross_matches",
 ]
+
+
+def __getattr__(name: str):
+    """Lazy import for optional submodules.
+
+    Submodules listed here are only imported when explicitly accessed,
+    rather than at package load time.
+    """
+    if name == "jupyter":
+        from . import jupyter
+
+        return jupyter
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 try:
     from ._version import __version__
