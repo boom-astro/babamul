@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass
 
+import astropy.units as u
 import pytest
+from astropy.coordinates import SkyCoord
 
 from babamul.api import (
     get_alerts,
@@ -59,7 +61,7 @@ def ztf_object():
 
 @pytest.fixture(scope="session")
 def lsst_object():
-    return _get_test_object("LSST", "ZTF18abmrfqv")
+    return _get_test_object("LSST", "313637935280816139")
 
 
 # ---- Initialization tests ----
@@ -108,7 +110,6 @@ class TestAPIClientAlerts:
         assert len(alerts) >= 1
         assert all(a.objectId == ztf_object.id for a in alerts)
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_alerts_by_object_id(self, lsst_object):
         alerts = get_alerts("LSST", object_id=lsst_object.id)
         assert len(alerts) >= 1
@@ -119,23 +120,26 @@ class TestAPIClientAlerts:
             "ZTF", ra=ztf_object.ra, dec=ztf_object.dec, radius_arcsec=10.0
         )
         assert len(alerts) >= 1
+        target = SkyCoord(ra=ztf_object.ra * u.deg, dec=ztf_object.dec * u.deg)
         for a in alerts:
-            # Simple check: ensure the alert is within ~10 arcsec of the target position
-            delta_ra = abs(a.candidate.ra - ztf_object.ra)
-            delta_dec = abs(a.candidate.dec - ztf_object.dec)
-            assert (delta_ra**2 + delta_dec**2) ** 0.5 <= (10.0 / 3600.0)
+            pos = SkyCoord(
+                ra=a.candidate.ra * u.deg, dec=a.candidate.dec * u.deg
+            )
+            assert target.separation(pos).arcsec <= 10.0
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_alerts_by_ra_dec(self, lsst_object):
         alerts = get_alerts(
             "LSST", ra=lsst_object.ra, dec=lsst_object.dec, radius_arcsec=10.0
         )
         assert len(alerts) >= 1
+        target = SkyCoord(
+            ra=lsst_object.ra * u.deg, dec=lsst_object.dec * u.deg
+        )
         for a in alerts:
-            # Simple check: ensure the alert is within ~10 arcsec of the target position
-            delta_ra = abs(a.candidate.ra - lsst_object.ra)
-            delta_dec = abs(a.candidate.dec - lsst_object.dec)
-            assert (delta_ra**2 + delta_dec**2) ** 0.5 <= (10.0 / 3600.0)
+            pos = SkyCoord(
+                ra=a.candidate.ra * u.deg, dec=a.candidate.dec * u.deg
+            )
+            assert target.separation(pos).arcsec <= 10.0
 
     def test_get_alerts_with_drb_filters(self, ztf_object):
         not_filtered_alerts = get_alerts("ZTF", object_id=ztf_object.id)
@@ -199,7 +203,6 @@ class TestAPIClientCutouts:
             or cutouts.cutoutDifference != b""
         )
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_cutouts(self, lsst_object):
         alerts = get_alerts("LSST", object_id=lsst_object.id)
         candid = alerts[0].candid
@@ -219,7 +222,6 @@ class TestAPIClientCutouts:
         assert isinstance(cutouts, AlertCutouts)
         assert cutouts.candid == alert.candid
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_cutouts_for_alert(self, lsst_object):
         alerts = get_alerts("LSST", object_id=lsst_object.id)
         alert = alerts[0]
@@ -237,7 +239,6 @@ class TestAPIClientCutouts:
         if cutouts.cutoutDifference is not None:
             assert isinstance(cutouts.cutoutDifference, bytes)
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_lsst_cutouts_are_bytes(self, lsst_object):
         alerts = get_alerts("LSST", object_id=lsst_object.id)
         cutouts = alerts[0].get_cutouts()
@@ -266,7 +267,6 @@ class TestAPIClientObjects:
         assert isinstance(obj, ZtfAlert)
         assert obj.objectId == ztf_object.id
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_object(self, lsst_object):
         obj = get_object("LSST", lsst_object.id)
         assert isinstance(obj, LsstAlert)
@@ -277,7 +277,6 @@ class TestAPIClientObjects:
         phot = obj.get_photometry()
         assert isinstance(phot, list)
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_object_has_photometry(self, lsst_object):
         obj = get_object("LSST", lsst_object.id)
         phot = obj.get_photometry()
@@ -285,18 +284,23 @@ class TestAPIClientObjects:
 
     def test_get_ztf_object_from_alert(self, ztf_object):
         alerts = get_alerts("ZTF", object_id=ztf_object.id)
-        alerts[0]
-        obj = get_object("ZTF", ztf_object.id)
+        alert = alerts[0]
+        assert alert.prv_candidates is None
+
+        obj = alert.get_full_object()
         assert isinstance(obj, ZtfAlert)
         assert obj.objectId == ztf_object.id
+        assert obj.prv_candidates is not None
 
-    @pytest.mark.skip(reason="Waiting for valid LSST object ID")
     def test_get_lsst_object_from_alert(self, lsst_object):
         alerts = get_alerts("LSST", object_id=lsst_object.id)
-        alerts[0]
-        obj = get_object("LSST", lsst_object.id)
+        alert = alerts[0]
+        assert alert.prv_candidates is None
+
+        obj = alert.get_full_object()
         assert isinstance(obj, LsstAlert)
         assert obj.objectId == lsst_object.id
+        assert obj.prv_candidates is not None
 
     def test_get_ztf_object_not_found(self):
         with pytest.raises(APINotFoundError):
