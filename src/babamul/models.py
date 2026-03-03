@@ -15,10 +15,8 @@ from .lightcurves import plot_lightcurve
 from .raw_models import (
     EnrichedLsstAlert,
     EnrichedZtfAlert,
-    LsstAlertProperties,
     LsstCandidate,
     Photometry,
-    ZtfAlertProperties,
     ZtfCandidate,
 )
 
@@ -789,73 +787,3 @@ def add_cross_matches(
             alert.cross_matches = lsst_cross_matches.get(
                 alert.objectId, CrossMatches()
             )
-
-
-# # --- LSST API models ---
-
-
-class ZtfApiAlert(BaseModel):
-    candid: int
-    objectId: str
-    candidate: ZtfCandidate
-    properties: ZtfAlertProperties
-    classifications: dict[str, float] | None = None
-
-    def fetch_full_object(self) -> ZtfAlert:
-        """Fetch the full ZTF object from the API.
-
-        Returns
-        -------
-        ZtfAlert
-            Full object with all available data.
-        """
-        from .api import get_object
-
-        return cast(ZtfAlert, get_object("ZTF", self.objectId))
-
-    def fetch_cutouts(self) -> AlertCutouts:
-        """Fetch cutouts for this alert from the API.
-
-        Returns
-        -------
-        AlertCutouts
-            Cutout images (science, template, difference) as bytes.
-        """
-        from .api import get_cutouts
-
-        return get_cutouts("ZTF", self.candid)
-
-
-# --- LSST API models ---
-
-
-class LsstApiAlert(BaseModel):
-    candid: int
-    objectId: str
-    candidate: LsstCandidate
-    properties: LsstAlertProperties
-    classifications: dict[str, float] | None = None
-
-    def fetch_full_object(self) -> LsstAlert:
-        """Fetch the full LSST object from the API.
-
-        Returns
-        -------
-        LsstAlert
-            Full object with all available data.
-        """
-        from .api import get_object
-
-        return cast(LsstAlert, get_object("LSST", self.objectId))
-
-    def fetch_cutouts(self) -> AlertCutouts:
-        """Fetch cutouts for this alert from the API.
-
-        Returns
-        -------
-        AlertCutouts
-            Cutout images (science, template, difference) as bytes.
-        """
-        from .api import get_cutouts
-
-        return get_cutouts("LSST", self.candid)

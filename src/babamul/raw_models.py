@@ -371,7 +371,7 @@ class EnrichedZtfAlert(BaseModel):
     prv_candidates: list[Photometry] | None = None
     prv_nondetections: list[Photometry] | None = None
     fp_hists: list[Photometry] | None = None
-    properties: ZtfAlertProperties
+    properties: ZtfAlertProperties | None = None
     survey_matches: ZtfSurveyMatches | None = None
     cutoutScience: bytes | None = Field(
         None, validation_alias=AliasChoices("cutoutScience", "cutout_science")
@@ -587,7 +587,7 @@ class EnrichedLsstAlert(BaseModel):
     candidate: LsstCandidate
     prv_candidates: list[Photometry] | None = None
     fp_hists: list[Photometry] | None = None
-    properties: LsstAlertProperties
+    properties: LsstAlertProperties | None = None
     cutoutScience: bytes | None = Field(
         None, validation_alias=AliasChoices("cutoutScience", "cutout_science")
     )
