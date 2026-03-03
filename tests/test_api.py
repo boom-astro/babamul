@@ -282,26 +282,6 @@ class TestAPIClientObjects:
         phot = obj.get_photometry()
         assert isinstance(phot, list)
 
-    def test_get_ztf_object_from_alert(self, ztf_object):
-        alerts = get_alerts("ZTF", object_id=ztf_object.id)
-        alert = alerts[0]
-        assert alert.prv_candidates is None
-
-        obj = alert.get_full_object()
-        assert isinstance(obj, ZtfAlert)
-        assert obj.objectId == ztf_object.id
-        assert obj.prv_candidates is not None
-
-    def test_get_lsst_object_from_alert(self, lsst_object):
-        alerts = get_alerts("LSST", object_id=lsst_object.id)
-        alert = alerts[0]
-        assert alert.prv_candidates is None
-
-        obj = alert.get_full_object()
-        assert isinstance(obj, LsstAlert)
-        assert obj.objectId == lsst_object.id
-        assert obj.prv_candidates is not None
-
     def test_get_ztf_object_not_found(self):
         with pytest.raises(APINotFoundError):
             get_object("ZTF", "ZTFnonexistent99999")

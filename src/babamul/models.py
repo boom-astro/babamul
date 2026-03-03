@@ -1,7 +1,7 @@
 """Pydantic models for Babamul alerts."""
 
 from datetime import timezone
-from typing import TYPE_CHECKING, Self, cast
+from typing import TYPE_CHECKING, cast
 
 import matplotlib.pyplot as plt
 from astropy.time import Time
@@ -350,18 +350,6 @@ class ZtfAlert(EnrichedZtfAlert):
         self.cutoutDifference = cutouts.cutoutDifference
         return cutouts
 
-    def get_full_object(self) -> Self:
-        """Fetch the full ZTF object from the API.
-
-        Returns
-        -------
-        ZtfAlert
-            Full object with all available data.
-        """
-        from .api import get_object
-
-        return cast(Self, get_object("ZTF", self.objectId))
-
     def get_cross_matches(self) -> CrossMatches | None:
         """Fetch cross-matches for this alert from the API.
 
@@ -655,18 +643,6 @@ class LsstAlert(EnrichedLsstAlert):
         self.cutoutTemplate = cutouts.cutoutTemplate
         self.cutoutDifference = cutouts.cutoutDifference
         return cutouts
-
-    def get_full_object(self) -> Self:
-        """Fetch the full LSST object from the API.
-
-        Returns
-        -------
-        LsstAlert
-            Full object with all available data.
-        """
-        from .api import get_object
-
-        return cast(Self, get_object("LSST", self.objectId))
 
     def get_cross_matches(self) -> CrossMatches | None:
         """Fetch cross-matches for this alert from the API.
