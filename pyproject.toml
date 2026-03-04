@@ -44,6 +44,11 @@ dependencies = [
     "brotli>=1.2.0",
 ]
 
+[project.optional-dependencies]
+jupyter = [
+    "ipywidgets>=8.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/boom-astro/babamul"
 Documentation = "https://boom-astro.github.io/babamul"

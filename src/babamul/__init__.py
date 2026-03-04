@@ -32,7 +32,6 @@ from .models import (
 __all__ = [
     "api",
     "topics",
-    "jupyter",
     "get_alerts",
     "get_cutouts",
     "get_object",
@@ -53,19 +52,6 @@ __all__ = [
     "ZtfCandidate",
     "add_cross_matches",
 ]
-
-
-def __getattr__(name: str):
-    """Lazy import for optional submodules.
-
-    Submodules listed here are only imported when explicitly accessed,
-    rather than at package load time.
-    """
-    if name == "jupyter":
-        from . import jupyter
-
-        return jupyter
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 try:
