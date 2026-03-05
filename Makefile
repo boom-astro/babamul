@@ -12,6 +12,8 @@ format: ## Automatically format files.
 test: ## Test the code with pytest.
 	@echo "🚀 Testing code with pytest"
 	@uv run pytest
+	@echo "🚀 Running example notebooks"
+	@uvx calk9 nb exec examples/api/notebook.ipynb -e examples/api/pyproject.toml
 
 .PHONY: check-types
 check-types: ## Check types with mypy.
