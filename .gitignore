@@ -21,3 +21,4 @@ tests/.env
 # Ignore uv.lock files in the examples so they resolve to the latest version
 # of babamul
 examples/*/uv.lock
+.vscode
