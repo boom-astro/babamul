@@ -308,6 +308,11 @@ dependencies = [
     { name = "scipy" },
 ]
 
+[package.optional-dependencies]
+jupyter = [
+    { name = "ipywidgets" },
+]
+
 [package.dev-dependencies]
 dev = [
     { name = "duckdb" },
@@ -335,11 +340,13 @@ requires-dist = [
     { name = "cramjam", specifier = ">=2.8.0" },
     { name = "fastavro", specifier = ">=1.9.0" },
     { name = "httpx", specifier = ">=0.27.0" },
+    { name = "ipywidgets", marker = "extra == 'jupyter'", specifier = ">=8.0.0" },
     { name = "matplotlib", specifier = ">=3.8.0" },
     { name = "pandas", specifier = ">=3.0.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "scipy", specifier = ">=1.17.0" },
 ]
+provides-extras = ["jupyter"]
 
 [package.metadata.requires-dev]
 dev = [

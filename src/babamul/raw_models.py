@@ -297,8 +297,8 @@ class BandRateProperties(BaseModel):
 
 class BandProperties(BaseModel):
     peak_jd: float
-    peak_mag: float
-    peak_mag_err: float
+    peak_mag: float | None
+    peak_mag_err: float | None
     dt: float
     rising: BandRateProperties | None
     fading: BandRateProperties | None
