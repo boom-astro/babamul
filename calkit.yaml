@@ -1,7 +1,0 @@
-environments:
-  stream-basic:
-    kind: uv
-    path: examples/stream-basic/pyproject.toml
-  api:
-    kind: uv
-    path: examples/api/pyproject.toml
