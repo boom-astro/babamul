@@ -15,9 +15,3 @@ repos:
         types_or: [python, jupyter]
       - id: ruff-format
         types_or: [python, jupyter]
-
-  - repo: https://github.com/kynan/nbstripout
-    rev: "0.7.1"
-    hooks:
-      - id: nbstripout
-        args: [--drop-empty-cells]
