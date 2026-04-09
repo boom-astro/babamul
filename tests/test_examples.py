@@ -4,8 +4,10 @@ import os
 import shutil
 import subprocess
 from pathlib import Path
+from typing import cast
 
 import tomlkit
+import tomlkit.items
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -33,18 +35,17 @@ def test_api(tmp_path: Path):
     pyproject_text = pyproject_path.read_text(encoding="utf-8")
     # Keep the example's pyproject unchanged and inject local source for tests
     pyproject_doc = tomlkit.parse(pyproject_text)
-    dependencies = pyproject_doc["project"]["dependencies"]
+    project = cast(tomlkit.items.Table, pyproject_doc["project"])
+    dependencies = cast(tomlkit.items.Array, project["dependencies"])
     local_dep = f"babamul @ file://{REPO_ROOT}"
     replaced = False
     for idx, dep in enumerate(dependencies):
-        dep_value = dep.unwrap() if hasattr(dep, "unwrap") else str(dep)
-        if dep_value == "babamul":
+        if dep.unwrap() == "babamul":
             dependencies[idx] = local_dep
             replaced = True
             break
     assert replaced, "Expected babamul dependency in API pyproject"
     pyproject_path.write_text(tomlkit.dumps(pyproject_doc), encoding="utf-8")
-
     result = subprocess.run(
         [
             "uvx",
