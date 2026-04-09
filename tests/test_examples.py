@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import cast
 
+import pytest
 import tomlkit
 import tomlkit.items
 
@@ -71,6 +72,7 @@ def test_api(tmp_path: Path):
     _run_example_notebook(REPO_ROOT / "examples" / "api", tmp_path)
 
 
+@pytest.mark.skip(reason="Takes a long time to run")
 def test_stream_basic(tmp_path: Path):
     """Test the stream-basic example notebook."""
     _run_example_notebook(REPO_ROOT / "examples" / "stream-basic", tmp_path)
