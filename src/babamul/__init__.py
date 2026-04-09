@@ -2,7 +2,7 @@
 streams and interacting with the Babamul API.
 """
 
-from . import api, jupyter, topics
+from . import api, topics
 from .api import (
     get_alerts,
     get_cutouts,
@@ -32,7 +32,6 @@ from .models import (
 __all__ = [
     "api",
     "topics",
-    "jupyter",
     "get_alerts",
     "get_cutouts",
     "get_object",
@@ -53,6 +52,7 @@ __all__ = [
     "ZtfCandidate",
     "add_cross_matches",
 ]
+
 
 try:
     from ._version import __version__
