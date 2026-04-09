@@ -127,4 +127,5 @@ dev = [
     "duckdb>=1.4.4",
     "pyarrow>=23.0.0",
     "jupyter>=1.1.1",
+    "tomlkit>=0.13.2",
 ]
