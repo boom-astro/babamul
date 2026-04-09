@@ -54,8 +54,9 @@ def _run_example_notebook(
     params_json = json.dumps(params) if params else None
     result = subprocess.run(
         [
-            "uvx",
-            "calk9",  # Calkit executable short name on PyPI
+            "uv",
+            "run",
+            "calkit",
             "nb",
             "exec",
             "-e",

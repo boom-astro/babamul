@@ -128,4 +128,5 @@ dev = [
     "pyarrow>=23.0.0",
     "jupyter>=1.1.1",
     "tomlkit>=0.13.2",
+    "calkit-python>=0.37.2",
 ]
