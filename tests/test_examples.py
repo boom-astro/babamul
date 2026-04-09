@@ -1,8 +1,10 @@
 """Tests for examples."""
 
+import json
 import os
 import shutil
 import subprocess
+import uuid
 from pathlib import Path
 from typing import cast
 
@@ -13,11 +15,29 @@ import tomlkit.items
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _run_example_notebook(source_dir: Path, tmp_path: Path) -> None:
+def _run_example_notebook(
+    source_dir: Path,
+    tmp_path: Path,
+    no_copy_paths: list[str] | None = None,
+    params: dict[str, str] | None = None,
+) -> None:
     """Copy an example directory to tmp_path, patch babamul to the local repo,
-    run the notebook with calk9, then copy the executed notebook back."""
+    run the notebook with Calkit, then copy the executed notebook back.
+    """
     work_dir = tmp_path / source_dir.name
-    shutil.copytree(source_dir, work_dir)
+    # If no_copy_paths is provided, we need to copy files individually instead
+    # of the entire directory
+    if no_copy_paths:
+        work_dir.mkdir()
+        for item in source_dir.iterdir():
+            if item.name not in no_copy_paths:
+                dest = work_dir / item.name
+                if item.is_dir():
+                    shutil.copytree(item, dest)
+                else:
+                    shutil.copy2(item, dest)
+    else:
+        shutil.copytree(source_dir, work_dir)
     pyproject_path = work_dir / "pyproject.toml"
     pyproject_doc = tomlkit.parse(pyproject_path.read_text(encoding="utf-8"))
     project = cast(tomlkit.items.Table, pyproject_doc["project"])
@@ -31,6 +51,7 @@ def _run_example_notebook(source_dir: Path, tmp_path: Path) -> None:
             break
     assert replaced, f"Expected babamul dependency in {pyproject_path}"
     pyproject_path.write_text(tomlkit.dumps(pyproject_doc), encoding="utf-8")
+    params_json = json.dumps(params) if params else None
     result = subprocess.run(
         [
             "uvx",
@@ -40,7 +61,8 @@ def _run_example_notebook(source_dir: Path, tmp_path: Path) -> None:
             "-e",
             "pyproject.toml",
             "notebook.ipynb",
-        ],
+        ]
+        + (["--params-json", params_json] if params_json else []),
         capture_output=True,
         text=True,
         cwd=work_dir,
@@ -80,4 +102,9 @@ def test_stream_basic(tmp_path: Path):
 
 def test_stream_cached(tmp_path: Path):
     """Test the stream-cached example notebook."""
-    _run_example_notebook(REPO_ROOT / "examples" / "stream-cached", tmp_path)
+    _run_example_notebook(
+        REPO_ROOT / "examples" / "stream-cached",
+        tmp_path,
+        no_copy_paths=["data"],
+        params={"group_id": uuid.uuid4().hex[:8]},
+    )
