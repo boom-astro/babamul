@@ -70,7 +70,9 @@ def fluxerr2diffmaglim(flux_err: float, zp: float) -> float:
 class ZtfCandidate(BaseModel):
     """ZTF alert candidate data from the ZTF alert stream."""
 
-    jd: float = Field(description="Observation Julian date at start of exposure [days]")
+    jd: float = Field(
+        description="Observation Julian date at start of exposure [days]"
+    )
     fid: int = Field(
         ...,
         ge=1,
@@ -102,9 +104,13 @@ class ZtfCandidate(BaseModel):
     field: int | None = Field(None, description="ZTF field ID")
     ra: float = Field(description="Right Ascension of candidate; J2000 [deg]")
     dec: float = Field(description="Declination of candidate; J2000 [deg]")
-    magpsf: float = Field(description="Magnitude from PSF-fit photometry [mag]")
+    magpsf: float = Field(
+        description="Magnitude from PSF-fit photometry [mag]"
+    )
     sigmapsf: float = Field(description="1-sigma uncertainty in magpsf [mag]")
-    chipsf: float | None = Field(None, description="Reduced chi-square for PSF-fit")
+    chipsf: float | None = Field(
+        None, description="Reduced chi-square for PSF-fit"
+    )
     magap: float | None = Field(
         None, description="Aperture mag using 14 pixel diameter aperture [mag]"
     )
@@ -143,9 +149,7 @@ class ZtfCandidate(BaseModel):
     mindtoedge: float | None = Field(
         None, description="Distance to nearest edge in image [pixels]"
     )
-    seeratio: float | None = Field(
-        None, description="Ratio: difffwhm / fwhm"
-    )
+    seeratio: float | None = Field(None, description="Ratio: difffwhm / fwhm")
     aimage: float | None = Field(
         None,
         description="Windowed profile RMS along major axis from SExtractor [pixels]",
@@ -630,7 +634,9 @@ class EnrichedZtfAlert(BaseModel):
 class LsstCandidate(BaseModel):
     """LSST alert candidate data from the LSST alert stream."""
 
-    diaSourceId: int = Field(description="Unique identifier of this DiaSource.")
+    diaSourceId: int = Field(
+        description="Unique identifier of this DiaSource."
+    )
     visit: int = Field(
         description="Id of the visit where this diaSource was measured."
     )
@@ -679,9 +685,7 @@ class LsstCandidate(BaseModel):
     psfFlux: float | None = Field(
         description="Flux for Point Source model. Note this actually measures the flux difference between the template and the visit image."
     )
-    psfFluxErr: float | None = Field(
-        description="Uncertainty of psfFlux."
-    )
+    psfFluxErr: float | None = Field(description="Uncertainty of psfFlux.")
     psfChi2: float | None = Field(
         description="Chi^2 statistic of the point source model fit."
     )
@@ -700,9 +704,7 @@ class LsstCandidate(BaseModel):
     trailFlux: float | None = Field(
         description="Flux for a trailed source model. Note this actually measures the flux difference between the template and the visit image."
     )
-    trailFluxErr: float | None = Field(
-        description="Uncertainty of trailFlux."
-    )
+    trailFluxErr: float | None = Field(description="Uncertainty of trailFlux.")
     trailRa: float | None = Field(
         description="Right ascension coordinate of centroid for trailed source model."
     )
@@ -774,9 +776,7 @@ class LsstCandidate(BaseModel):
     band: Band | None = Field(
         description="Filter band this source was observed with."
     )
-    isDipole: bool | None = Field(
-        description="Source well fit by a dipole."
-    )
+    isDipole: bool | None = Field(description="Source well fit by a dipole.")
     pixelFlags: bool | None = Field(
         description="General pixel flags failure; set if anything went wrong when setting pixels flags from this footprint's mask."
     )
@@ -849,9 +849,7 @@ class LsstCandidate(BaseModel):
     magpsf: float = Field(
         description="Magnitude from PSF-fit photometry [mag]."
     )
-    sigmapsf: float = Field(
-        description="1-sigma uncertainty in magpsf [mag]."
-    )
+    sigmapsf: float = Field(description="1-sigma uncertainty in magpsf [mag].")
     diffmaglim: float = Field(
         description="5-sigma mag limit in difference image [mag]."
     )
@@ -862,9 +860,7 @@ class LsstCandidate(BaseModel):
         description="Signal-to-noise ratio at which this source was detected in the difference image."
     )
     magap: float = Field(description="Aperture magnitude [mag].")
-    sigmagap: float = Field(
-        description="1-sigma uncertainty in magap [mag]."
-    )
+    sigmagap: float = Field(description="1-sigma uncertainty in magap [mag].")
     jdstarthist: float | None = Field(
         None,
         description="Earliest Julian date of epoch in the detection history [days].",
