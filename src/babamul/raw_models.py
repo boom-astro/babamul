@@ -442,6 +442,7 @@ class LsstCandidate(BaseModel):
     apFluxErr: float | None
     apFlux_flag: bool | None
     apFlux_flag_apertureTruncated: bool | None
+    isNegative: bool | None
     psfFlux: float | None
     psfFluxErr: float | None
     psfChi2: float | None
