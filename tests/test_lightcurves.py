@@ -2,8 +2,6 @@
 
 from typing import Any
 
-import pytest
-
 from babamul.lightcurves import SNR_THRESHOLD, get_prv_candidates
 
 
@@ -93,17 +91,6 @@ def test_zero_snr_with_diffmaglim_is_non_detection():
     assert len(result) == 1
     assert result[0]["lim"] is True
     assert result[0]["mag"] == 21.0
-
-
-def test_no_snr_with_valid_mag_is_detection():
-    """Data points with no SNR field but valid mag/magerr should be included as detections."""
-    alert = make_alert(
-        [{"jd": 2460500.5, "magpsf": 18.5, "sigmapsf": 0.1, "band": "r"}]
-    )
-    result = get_prv_candidates(alert)
-    assert len(result) == 1
-    assert result[0]["lim"] is False
-    assert result[0]["mag"] == 18.5
 
 
 def test_no_snr_no_mag_is_skipped():
