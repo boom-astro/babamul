@@ -148,11 +148,11 @@ class ZtfCandidate(BaseModel):
     )
     aimage: float | None = Field(
         None,
-        description="Windowed profile RMS afloat major axis from SExtractor [pixels]",
+        description="Windowed profile RMS along major axis from SExtractor [pixels]",
     )
     bimage: float | None = Field(
         None,
-        description="Windowed profile RMS afloat minor axis from SExtractor [pixels]",
+        description="Windowed profile RMS along minor axis from SExtractor [pixels]",
     )
     elong: float | None = Field(None, description="Ratio: aimage / bimage")
     nneg: int | None = Field(
