@@ -507,8 +507,8 @@ class LsstCandidate(BaseModel):
     diffmaglim: float
     isdiffpos: bool
     snr: float
-    magap: float
-    sigmagap: float
+    magap: float | None = None
+    sigmagap: float | None = None
     jdstarthist: float | None = None
     ndethist: int | None = None
     snr_psf: float | None = None
