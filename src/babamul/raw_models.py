@@ -73,8 +73,8 @@ class ZtfCandidate(BaseModel):
     jd: float = Field(description="Observation Julian date at start of exposure [days]")
     fid: int = Field(
         ...,
-        ge=-(2**31),
-        le=(2**31 - 1),
+        ge=1,
+        le=3,
         description="Filter ID (1=g; 2=R; 3=i)",
     )
     pid: int = Field(
@@ -89,13 +89,13 @@ class ZtfCandidate(BaseModel):
     )
     programid: int = Field(
         ...,
-        ge=-(2**31),
-        le=(2**31 - 1),
-        description="Program ID: encodes either public, collab, or caltech mode",
+        ge=0,
+        le=3,
+        description="Program ID: 0=engineering, 1=public, 2=partnership, 3=caltech",
     )
     candid: int = Field(description="Candidate ID from operations DB")
     isdiffpos: bool = Field(
-        description="t or 1 => candidate is from positive (sci minus ref) subtraction; f or 0 => candidate is from negative (ref minus sci) subtraction"
+        description="True if candidate is from positive (sci minus ref) subtraction; False if from negative (ref minus sci) subtraction"
     )
     nid: int | None = Field(None, description="Night ID")
     rcid: int | None = Field(None, description="Readout channel ID [00 .. 63]")
@@ -210,14 +210,12 @@ class ZtfCandidate(BaseModel):
     )
     ndethist: int = Field(
         ...,
-        ge=-(2**31),
-        le=(2**31 - 1),
+        ge=0,
         description="Number of spatially-coincident detections falling within 1.5 arcsec going back to beginning of survey",
     )
     ncovhist: int = Field(
         ...,
-        ge=-(2**31),
-        le=(2**31 - 1),
+        ge=0,
         description="Number of times input candidate position fell on any field and readout-channel going back to beginning of survey",
     )
     jdstarthist: float | None = Field(
@@ -278,8 +276,7 @@ class ZtfCandidate(BaseModel):
     )
     nmtchps: int = Field(
         ...,
-        ge=-(2**31),
-        le=(2**31 - 1),
+        ge=0,
         description="Number of source matches from PS1 catalog falling within 30 arcsec",
     )
     dsnrms: float | None = Field(
@@ -639,8 +636,7 @@ class LsstCandidate(BaseModel):
     )
     detector: int = Field(
         ...,
-        ge=-(2**31),
-        le=(2**31 - 1),
+        ge=0,
         description="Id of the detector where this diaSource was measured.",
     )
     diaObjectId: int | None = Field(
