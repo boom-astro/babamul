@@ -859,8 +859,8 @@ class LsstCandidate(BaseModel):
     snr: float = Field(
         description="Signal-to-noise ratio at which this source was detected in the difference image."
     )
-    magap: float = Field(description="Aperture magnitude [mag].")
-    sigmagap: float = Field(description="1-sigma uncertainty in magap [mag].")
+    magap: float | None = Field(None, description="Aperture magnitude [mag].")
+    sigmagap: float | None = Field(None, description="1-sigma uncertainty in magap [mag].")
     jdstarthist: float | None = Field(
         None,
         description="Earliest Julian date of epoch in the detection history [days].",
