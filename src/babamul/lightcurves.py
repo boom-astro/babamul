@@ -19,6 +19,8 @@ band_colors = {
 
 surveys = ["ztf", "lsst"]
 
+SNR_THRESHOLD = 3
+
 
 def get_key_from_any(data: Any, key: str, default: Any = None) -> Any:
     # Handle both dict and classes
@@ -39,15 +41,29 @@ def _normalize_band(band: Any) -> str:
 def get_prv_candidates(alert: dict[str, Any] | Any):
     data = []
     for prv in get_key_from_any(alert, "prv_candidates", []):
-        data.append(
-            {
-                "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
-                "mag": get_key_from_any(prv, "magpsf", 0),
-                "magerr": get_key_from_any(prv, "sigmapsf", 0.1),
-                "band": get_key_from_any(prv, "band", "unknown"),
-                "lim": False,
-            }
-        )
+        snr = get_key_from_any(prv, "snr", None)
+        if snr and snr >= SNR_THRESHOLD:
+            data.append(
+                {
+                    "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
+                    "mag": get_key_from_any(prv, "magpsf", 0),
+                    "magerr": get_key_from_any(prv, "sigmapsf", 0.1),
+                    "band": get_key_from_any(prv, "band", "unknown"),
+                    "lim": False,
+                }
+            )
+        else:
+            diffmaglim = get_key_from_any(prv, "diffmaglim", None)
+            if diffmaglim is not None:
+                data.append(
+                    {
+                        "mjd": get_key_from_any(prv, "jd", 0) - 2400000.5,
+                        "mag": diffmaglim,
+                        "magerr": None,
+                        "band": get_key_from_any(prv, "band", "unknown"),
+                        "lim": True,
+                    }
+                )
     return data
 
 
@@ -58,7 +74,7 @@ def get_prv_nondetections(alert: dict[str, Any] | Any):
             {
                 "mjd": get_key_from_any(lim, "jd", 0) - 2400000.5,
                 "mag": get_key_from_any(lim, "diffmaglim", 0),
-                "magerr": 0.3,  # arbitrary error for limits
+                "magerr": None,
                 "band": get_key_from_any(lim, "band", "unknown"),
                 "lim": True,
             }
@@ -70,7 +86,7 @@ def get_fp_hists(alert: dict[str, Any] | Any):
     data = []
     for fp in get_key_from_any(alert, "fp_hists", []):
         snr = get_key_from_any(fp, "snr", 0)
-        if snr and snr > 3:
+        if snr and snr >= SNR_THRESHOLD:
             data.append(
                 {
                     "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
@@ -85,7 +101,7 @@ def get_fp_hists(alert: dict[str, Any] | Any):
                 {
                     "mjd": get_key_from_any(fp, "jd", 0) - 2400000.5,
                     "mag": get_key_from_any(fp, "diffmaglim", 0),
-                    "magerr": 0.3,
+                    "magerr": None,
                     "band": get_key_from_any(fp, "band", "unknown"),
                     "lim": True,
                 }
