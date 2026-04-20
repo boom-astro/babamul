@@ -1,10 +1,10 @@
 """Pydantic raw models for ZTF and LSST alerts, generated from avro schemas."""
 
+from datetime import timezone
 from enum import Enum
 from typing import Any
 
 import numpy as np
-from astropy import timezone
 from astropy.time import Time
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
