@@ -211,6 +211,7 @@ def sample_lsst_candidate_dict() -> dict[str, Any]:
         "apFluxErr": 50.0,
         "apFlux_flag": False,
         "apFlux_flag_apertureTruncated": False,
+        "isNegative": False,
         "psfFlux": 1000.0,
         "psfFluxErr": 50.0,
         "psfChi2": 1.0,

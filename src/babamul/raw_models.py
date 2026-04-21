@@ -681,6 +681,9 @@ class LsstCandidate(BaseModel):
     apFlux_flag_apertureTruncated: bool | None = Field(
         description="Aperture did not fit within measurement image."
     )
+    isNegative: bool | None = Field(
+        description="Source was detected as significantly negative."
+    )
     psfFlux: float | None = Field(
         description="Flux for Point Source model. Note this actually measures the flux difference between the template and the visit image."
     )
