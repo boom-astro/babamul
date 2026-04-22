@@ -23,10 +23,7 @@ jobs:
       - name: Setup uv
         uses: astral-sh/setup-uv@v5
       - name: Run tests
-        run: >-
-          uv run pytest
-          --ignore=tests/test_api.py
-          --ignore=tests/test_examples.py
+        run: uv run pytest
         env:
           BABAMUL_KAFKA_USERNAME: ${{ secrets.BABAMUL_KAFKA_USERNAME }}
           BABAMUL_KAFKA_PASSWORD: ${{ secrets.BABAMUL_KAFKA_PASSWORD }}
