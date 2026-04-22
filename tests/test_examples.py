@@ -42,7 +42,7 @@ def _run_example_notebook(
     pyproject_doc = tomlkit.parse(pyproject_path.read_text(encoding="utf-8"))
     project = cast(tomlkit.items.Table, pyproject_doc["project"])
     dependencies = cast(tomlkit.items.Array, project["dependencies"])
-    local_dep = f"babamul @ file://{REPO_ROOT}"
+    local_dep = f"babamul @ {REPO_ROOT.as_uri()}"
     replaced = False
     for idx, dep in enumerate(dependencies):
         if dep.unwrap() == "babamul":
@@ -84,7 +84,7 @@ def test_stream_app():
         ["uv", "run", "--with-editable", str(REPO_ROOT), "python", "main.py"],
         capture_output=True,
         text=True,
-        cwd="examples/stream-app",
+        cwd=REPO_ROOT / "examples" / "stream-app",
         env=env,
     )
     assert result.returncode == 0, f"Stream app failed: {result.stderr}"
