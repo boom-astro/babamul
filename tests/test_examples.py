@@ -72,6 +72,31 @@ def _run_example_notebook(
     executed_notebook = work_dir / "notebook.ipynb"
     if executed_notebook.exists():
         shutil.copy2(executed_notebook, source_dir / "notebook.ipynb")
+        # Now clean out any widget outputs since those change every execution
+        # Also remove any personal user information
+        with open(source_dir / "notebook.ipynb", encoding="utf-8") as f:
+            notebook_data = json.load(f)
+        for cell in notebook_data.get("cells", []):
+            outputs = cell.get("outputs", [])
+            for output in outputs:
+                if output.get("data", {}).get(
+                    "application/vnd.jupyter.widget-view+json"
+                ):
+                    output["data"] = {}
+                    output["metadata"] = {}
+                if "text" in output:
+                    cleaned_text = []
+                    for line in output["text"]:
+                        if line.startswith("Username:"):
+                            line = "Username: yourname"
+                        elif line.startswith("Email:"):
+                            line = "Email:    you@yourorg.edu"
+                        elif line.startswith("ID:"):
+                            line = "ID:       your-user-id"
+                        cleaned_text.append(line)
+                    output["text"] = cleaned_text
+        with open(source_dir / "notebook.ipynb", "w", encoding="utf-8") as f:
+            json.dump(notebook_data, f, indent=1)
     assert (
         result.returncode == 0
     ), f"{source_dir.name} notebook failed: {result.stderr}"
