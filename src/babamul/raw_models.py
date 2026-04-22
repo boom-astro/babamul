@@ -1,9 +1,11 @@
 """Pydantic raw models for ZTF and LSST alerts, generated from avro schemas."""
 
+from datetime import timezone
 from enum import Enum
 from typing import Any
 
 import numpy as np
+from astropy.time import Time
 from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
@@ -487,9 +489,6 @@ class Photometry(BaseModel):
 
     @property
     def datetime(self) -> Any:  # Returns datetime object from astropy
-        from astropy import timezone
-        from astropy.time import Time
-
         return Time(self.jd, format="jd").to_datetime(timezone=timezone.utc)
 
 
@@ -862,8 +861,10 @@ class LsstCandidate(BaseModel):
     snr: float = Field(
         description="Signal-to-noise ratio at which this source was detected in the difference image."
     )
-    magap: float = Field(description="Aperture magnitude [mag].")
-    sigmagap: float = Field(description="1-sigma uncertainty in magap [mag].")
+    magap: float | None = Field(None, description="Aperture magnitude [mag].")
+    sigmagap: float | None = Field(
+        None, description="1-sigma uncertainty in magap [mag]."
+    )
     jdstarthist: float | None = Field(
         None,
         description="Earliest Julian date of epoch in the detection history [days].",
