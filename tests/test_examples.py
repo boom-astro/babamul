@@ -84,15 +84,16 @@ def _run_example_notebook(
                 ):
                     output["data"] = {}
                     output["metadata"] = {}
+                    output["output_type"] = "stream"
                 if "text" in output:
                     cleaned_text = []
                     for line in output["text"]:
                         if line.startswith("Username:"):
-                            line = "Username: yourname"
+                            line = "Username: yourname\n"
                         elif line.startswith("Email:"):
-                            line = "Email:    you@yourorg.edu"
+                            line = "Email:    you@yourorg.edu\n"
                         elif line.startswith("ID:"):
-                            line = "ID:       your-user-id"
+                            line = "ID:       your-user-id\n"
                         cleaned_text.append(line)
                     output["text"] = cleaned_text
         with open(source_dir / "notebook.ipynb", "w", encoding="utf-8") as f:
