@@ -23,11 +23,11 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff examples/*/*.ipynb --quiet; then
+          if ! git diff --quiet examples/*/*.ipynb; then
             echo "Notebook outputs changed, committing..."
             git add examples/*/*.ipynb
             git commit -m "Update notebook outputs [skip ci]"
-            git push
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
           else
             echo "No changes to notebook outputs."
           fi
