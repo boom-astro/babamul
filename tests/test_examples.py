@@ -20,9 +20,15 @@ def _run_example_notebook(
     tmp_path: Path,
     no_copy_paths: list[str] | None = None,
     params: dict[str, str] | None = None,
+    copy_executed_back: bool = False,
 ) -> None:
-    """Copy an example directory to tmp_path, patch babamul to the local repo,
-    run the notebook with Calkit, then copy the executed notebook back.
+    """Copy an example directory to tmp_path, patch babamul to install as
+    editable from the local repo, run the notebook with Calkit, then copy the
+    executed notebook back if desired.
+
+    ``no_copy_paths`` is a list of paths relative to the example directory that
+    should not be copied to the temporary directory. This is useful for
+    examples that accumulate data in their working directory.
     """
     work_dir = tmp_path / source_dir.name
     # If no_copy_paths is provided, we need to copy files individually instead
@@ -70,7 +76,7 @@ def _run_example_notebook(
     )
     # Copy notebook back to working directory so we can commit it
     executed_notebook = work_dir / "notebook.ipynb"
-    if executed_notebook.exists():
+    if copy_executed_back and executed_notebook.exists():
         shutil.copy2(executed_notebook, source_dir / "notebook.ipynb")
         # Now clean out any widget outputs since those change every execution
         # Also remove any personal user information

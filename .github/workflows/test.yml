@@ -2,9 +2,6 @@ name: Run tests
 
 on: pull_request
 
-permissions:
-  contents: write
-
 jobs:
   linux:
     runs-on: ubuntu-latest
@@ -20,19 +17,6 @@ jobs:
           BABAMUL_KAFKA_USERNAME: ${{ secrets.BABAMUL_KAFKA_USERNAME }}
           BABAMUL_KAFKA_PASSWORD: ${{ secrets.BABAMUL_KAFKA_PASSWORD }}
           BABAMUL_API_TOKEN: ${{ secrets.BABAMUL_API_TOKEN }}
-      # If any notebook outputs changed, commit and push back to the PR branch
-      - name: Check for notebook output changes
-        run: |
-          git config --global user.name "GitHub Actions"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet examples/*/*.ipynb; then
-            echo "Notebook outputs changed, committing..."
-            git add examples/*/*.ipynb
-            git commit -m "Update notebook outputs [skip ci]"
-            git push origin HEAD:${{ github.event.pull_request.head.ref }}
-          else
-            echo "No changes to notebook outputs."
-          fi
   windows:
     runs-on: windows-latest
     timeout-minutes: 20
