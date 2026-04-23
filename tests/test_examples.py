@@ -20,7 +20,7 @@ def _run_example_notebook(
     tmp_path: Path,
     no_copy_paths: list[str] | None = None,
     params: dict[str, str] | None = None,
-    copy_executed_back: bool = False,
+    copy_executed_back: bool = True,
 ) -> None:
     """Copy an example directory to tmp_path, patch babamul to install as
     editable from the local repo, run the notebook with Calkit, then copy the
