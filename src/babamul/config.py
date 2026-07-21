@@ -3,28 +3,35 @@
 import os
 from dataclasses import dataclass
 
-MAIN_KAFKA_SERVER = (
-    "kaboom.caltech.edu:9093"  # Default BABAMUL Kafka server in Caltech
-)
-BACKUP_KAFKA_SERVERS = "babamul.umn.edu:9093"  # Backup BABAMUL Kafka server in the University of Minnesota
+KAFKA_SERVERS = {
+    "local": "localhost:9093",
+    "production": "kaboom.caltech.edu:9093",  # Default BABAMUL Kafka server in Caltech
+    "backup": "babamul.umn.edu:9093",  # Backup BABAMUL Kafka server in the University of Minnesota
+}
 
 API_URLS = {
     "local": "http://localhost:4000/babamul",
     "production": "https://babamul.caltech.edu/api/babamul",
+    "backup": "https://babamul.umn.edu/api/babamul",
 }
+
+
+def _get_env() -> str:
+    """Get the validated BABAMUL_ENV value (defaults to "production")."""
+    env = os.getenv("BABAMUL_ENV", "production").lower()
+    if env not in KAFKA_SERVERS:
+        raise ValueError(
+            f"Invalid BABAMUL_ENV value: {env}. Must be one of {list(KAFKA_SERVERS.keys())}."
+        )
+    return env
 
 
 def get_base_url() -> str:
     """Get the API base URL based on the BABAMUL_ENV environment variable.
 
-    Returns the URL for "local" or "production" (default).
+    Returns the URL for "local", "backup" or "production" (default).
     """
-    env = os.getenv("BABAMUL_ENV", "production").lower()
-    if env not in API_URLS:
-        raise ValueError(
-            f"Invalid BABAMUL_ENV value: {env}. Must be one of {list(API_URLS.keys())}."
-        )
-    return API_URLS[env]
+    return API_URLS[_get_env()]
 
 
 @dataclass
@@ -33,7 +40,7 @@ class BabamulConfig:
 
     username: str
     password: str
-    server: str = MAIN_KAFKA_SERVER
+    server: str = KAFKA_SERVERS["production"]
     group_id: str | None = None
     offset: str = "latest"
     timeout: float | None = None
@@ -59,7 +66,7 @@ class BabamulConfig:
         password : str | None
             Babamul Kafka password. Can also be set via BABAMUL_KAFKA_PASSWORD env var.
         server : str | None
-            Kafka bootstrap server. Defaults to Babamul's server.
+            Kafka bootstrap server. Defaults to the BABAMUL_ENV specific kafka server (default "production").
             Can also be set via BABAMUL_KAFKA_SERVER env var.
         group_id : str | None
             Consumer group ID
@@ -85,7 +92,7 @@ class BabamulConfig:
         final_server = (
             server
             or os.environ.get("BABAMUL_KAFKA_SERVER")
-            or MAIN_KAFKA_SERVER
+            or KAFKA_SERVERS[_get_env()]
         )
         if not final_username:
             raise ValueError(
