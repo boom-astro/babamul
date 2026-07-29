@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """Basic usage example for babamul."""
 
+from dotenv import load_dotenv
+
 from babamul import AlertConsumer, LsstCandidate, ZtfCandidate
+
+load_dotenv()
 
 
 def main() -> None:
