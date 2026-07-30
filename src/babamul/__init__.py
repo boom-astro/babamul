@@ -58,3 +58,7 @@ try:
     from ._version import __version__
 except ImportError:
     __version__ = "0.0.0+unknown"
+
+from ._version_check import check_version
+
+check_version(__version__)
