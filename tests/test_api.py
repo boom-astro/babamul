@@ -11,6 +11,7 @@ from babamul.api import (
     get_cutouts,
     get_object,
     get_profile,
+    get_user_agent,
     search_objects,
 )
 from babamul.consumer import AlertConsumer
@@ -74,6 +75,52 @@ class TestAPIClientInit:
             APIAuthenticationError, match="No API token provided"
         ):
             get_profile()
+
+
+# ---- User agent tests ----
+
+
+class TestUserAgent:
+    """The User-Agent is the only client information we send.
+
+    These tests pin its shape so the server-side parser keeps working, and
+    guard against anything identifying creeping into it later.
+    """
+
+    def test_format_is_parseable(self):
+        import re
+
+        assert re.fullmatch(
+            r"babamul-python/\S+ \(Python/[\d.]+\S*; [^;)]+\)",
+            get_user_agent(),
+        )
+
+    def test_includes_package_and_python_version(self):
+        import platform
+
+        from babamul._version import __version__
+
+        user_agent = get_user_agent()
+        assert f"babamul-python/{__version__}" in user_agent
+        assert f"Python/{platform.python_version()}" in user_agent
+
+    def test_contains_nothing_identifying(self):
+        import getpass
+        import platform
+        import socket
+
+        user_agent = get_user_agent().lower()
+        # Values that would make the header a fingerprint or tie it to a
+        # person. `platform.system()` is intentionally allowed; `node()` (the
+        # hostname) and the username are not.
+        for identifying in (
+            socket.gethostname(),
+            platform.node(),
+            getpass.getuser(),
+            platform.release(),
+        ):
+            if identifying:
+                assert identifying.lower() not in user_agent
 
 
 # ---- Profile tests ----

@@ -5,13 +5,16 @@ from __future__ import annotations
 import base64
 import logging
 import os
+import platform
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from functools import lru_cache
 from typing import Any, Literal, cast, get_args
 
 import httpx
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
+from ._version import __version__
 from .config import get_base_url
 from .exceptions import APIAuthenticationError, APIError, APINotFoundError
 from .models import (
@@ -27,6 +30,33 @@ from .models import (
 logger = logging.getLogger(__name__)
 
 Survey = Literal["ZTF", "LSST"]
+
+
+@lru_cache(maxsize=1)
+def get_user_agent() -> str:
+    """Build the ``User-Agent`` header sent with every API request.
+
+    The package intentionally contains no analytics SDK — nothing about you or
+    your machine is collected or transmitted from here. This header is the one
+    piece of client information the server sees beyond the request itself, and
+    it is deliberately limited to facts that describe the software, not the
+    user: the package version, the Python version, and the OS name.
+
+    The format is ``babamul-python/<version> (Python/<version>; <os>)``, for
+    example::
+
+        babamul-python/0.1.0 (Python/3.12.1; Linux)
+
+    Nothing here is unique to a machine or a person: no hostname, username,
+    machine id, architecture, OS version, locale, or timezone. It lets the
+    BOOM team see which package versions are in use and whether traffic comes
+    from the package or from raw HTTP calls, which is what tells them when it
+    is safe to drop support for an old release.
+    """
+    return (
+        f"babamul-python/{__version__} "
+        f"(Python/{platform.python_version()}; {platform.system() or 'unknown'})"
+    )
 
 
 def _resolve_token() -> str:
@@ -84,6 +114,7 @@ def _request(
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {_resolve_token()}",
+        "User-Agent": get_user_agent(),
     }
 
     try:
