@@ -98,7 +98,7 @@ class TestUserAgent:
     def test_includes_package_and_python_version(self):
         import platform
 
-        from babamul._version import __version__
+        from babamul import __version__
 
         user_agent = get_user_agent()
         assert f"babamul-python/{__version__}" in user_agent

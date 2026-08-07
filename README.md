@@ -222,7 +222,9 @@ This package contains no analytics or telemetry SDK. It does not phone home,
 and it collects and transmits nothing about you or your machine.
 
 The one piece of client information the BOOM servers see is a standard
-`User-Agent` header on API requests, describing the software rather than you:
+software-description string, sent as the `User-Agent` header on API requests
+and as the Kafka `client.id` when consuming alerts. It describes the software
+rather than you:
 
 ```
 babamul-python/0.2.0 (Python/3.12.1; Linux)

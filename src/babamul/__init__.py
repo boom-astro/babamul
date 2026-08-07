@@ -2,6 +2,13 @@
 streams and interacting with the Babamul API.
 """
 
+from importlib.metadata import version
+
+# Read from the installed distribution metadata, so there is no dependency on
+# a build-generated file that a source checkout would not have. Must stay
+# above the submodule imports: `api` reads `__version__` for its User-Agent.
+__version__ = version("babamul")
+
 from . import api, topics
 from .api import (
     get_alerts,
@@ -52,9 +59,3 @@ __all__ = [
     "ZtfCandidate",
     "add_cross_matches",
 ]
-
-
-try:
-    from ._version import __version__
-except ImportError:
-    __version__ = "0.0.0+unknown"

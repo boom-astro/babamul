@@ -14,7 +14,7 @@ import httpx
 from astropy.coordinates import SkyCoord
 from astropy.table import Table
 
-from ._version import __version__
+from . import __version__
 from .config import get_base_url
 from .exceptions import APIAuthenticationError, APIError, APINotFoundError
 from .models import (
