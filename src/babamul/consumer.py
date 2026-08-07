@@ -6,6 +6,7 @@ from typing import Any
 
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
+from .api import get_user_agent
 from .avro import deserialize_alert
 from .config import BabamulConfig
 from .exceptions import (
@@ -122,6 +123,9 @@ class AlertConsumer:
         config: dict[str, str | int | bool] = {
             "bootstrap.servers": self._config.server,
             "group.id": self._group_id,
+            # Same string the API sends as User-Agent, so version usage is
+            # visible on the Kafka path too. See ``get_user_agent``.
+            "client.id": get_user_agent(),
             "auto.offset.reset": self._config.offset,
             "enable.auto.commit": str(self._config.auto_commit).lower(),
             "security.protocol": "SASL_PLAINTEXT",
