@@ -216,6 +216,29 @@ with AlertConsumer(topics=["babamul.*.*.hosted"], ...) as consumer:
     pass
 ```
 
+## Privacy
+
+This package contains no analytics or telemetry SDK. It does not phone home,
+and it collects and transmits nothing about you or your machine.
+
+The one piece of client information the BOOM servers see is a standard
+software-description string, sent as the `User-Agent` header on API requests
+and as the Kafka `client.id` when consuming alerts. It describes the software
+rather than you:
+
+```
+babamul-python/0.2.0 (Python/3.12.1; Linux)
+```
+
+That is the package version, the Python version, and the OS name — no
+hostname, username, machine identifier, architecture, OS version, locale, or
+timezone. It lets the BOOM team see which package versions are still in use,
+which is what tells them when an old release can be retired.
+
+Separately, and as you would expect of any hosted service, the BOOM servers
+record their own API requests and Kafka consumer-group offsets. That happens
+server-side regardless of which client you use.
+
 ## Development Setup
 
 For development and testing, use a `.env` file to manage your credentials:

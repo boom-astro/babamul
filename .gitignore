@@ -11,8 +11,6 @@ build/
 .venv/
 .ipynb_checkpoints/
 
-# Auto-generated version file
-src/babamul/_version.py
 alerts_**/
 
 .coverage
