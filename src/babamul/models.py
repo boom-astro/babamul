@@ -33,6 +33,7 @@ __all__ = [
     "Photometry",
     "Track",
     "UserProfile",
+    "VillarFit",
     "ZtfAlert",
     "ZtfCandidate",
     "add_cross_matches",
@@ -110,6 +111,15 @@ class Track(BaseModel):
     near_planet: str | None = None
     updated_at: float = 0.0
     orbit: TrackOrbit | None = None
+
+
+class VillarFit(BaseModel):
+    """Villar light curve fit of an alert."""
+
+    candid: int
+    reduced_chi2: float | None = None
+    peak_mag: float | None = None
+    params: dict[str, float] = Field(default_factory=dict)
 
 
 class CatalogMatch(BaseModel):

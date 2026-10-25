@@ -26,12 +26,14 @@ from .models import (
     ObjPhotometry,
     Track,
     UserProfile,
+    VillarFit,
     ZtfAlert,
 )
 
 logger = logging.getLogger(__name__)
 
 Survey = Literal["ZTF", "LSST"]
+WhichAlert = Literal["first", "last", "brightest", "faintest"]
 
 
 @lru_cache(maxsize=1)
@@ -930,6 +932,47 @@ def get_track(survey: Survey, track_id: str) -> Track:
     """
     response = _request("GET", f"/surveys/{survey}/tracks/{track_id}")
     return Track.model_validate(response.get("data", response))
+
+
+def get_villar_fit(
+    survey: Survey,
+    *,
+    candid: int | None = None,
+    object_id: str | None = None,
+    which: WhichAlert | None = None,
+) -> VillarFit:
+    """Get the Villar light curve fit of an alert.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey (only "ZTF" has Villar fits).
+    candid : int | None
+        Candidate ID of the alert.
+    object_id : str | None
+        Object ID, used when *candid* is not given.
+    which : WhichAlert | None
+        Which fitted alert of *object_id* to use (server default "last").
+
+    Returns
+    -------
+    VillarFit
+        Fit quality, peak magnitude, and model parameters keyed as
+        ``{param}_{filter}`` (e.g. ``A_ZTF_g``).
+    """
+    if candid is None and object_id is None:
+        raise ValueError("Provide candid or object_id.")
+    params = {
+        key: value
+        for key, value in {
+            "candid": candid,
+            "objectId": object_id,
+            "which": which,
+        }.items()
+        if value is not None
+    }
+    response = _request("GET", f"/surveys/{survey}/villar-fit", params=params)
+    return VillarFit.model_validate(response.get("data", response))
 
 
 def search_objects(
