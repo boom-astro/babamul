@@ -35,6 +35,8 @@ logger = logging.getLogger(__name__)
 Survey = Literal["ZTF", "LSST"]
 WhichAlert = Literal["first", "last", "brightest", "faintest"]
 
+ALERTS_PAGE_SIZE = 10000
+
 
 @lru_cache(maxsize=1)
 def get_user_agent() -> str:
@@ -177,6 +179,7 @@ def get_alerts(
     is_star: bool | None = None,
     is_near_brightstar: bool | None = None,
     is_stationary: bool | None = None,
+    limit: int = 100_000,
 ) -> list[ZtfAlert | LsstAlert]:
     """Query alerts from the API.
 
@@ -212,6 +215,8 @@ def get_alerts(
         Filter for sources near bright stars.
     is_stationary : bool | None
         Filter for likely stationary sources (not moving).
+    limit : int
+        Maximum number of alerts to return (default 100000).
 
     Returns
     -------
@@ -240,10 +245,20 @@ def get_alerts(
         if value is not None
     }
 
-    response = _request("GET", f"/surveys/{survey}/alerts", params=params)
-    data = response.get("data", [])
     alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
-    return [alert_model.model_validate(alert) for alert in data]
+    alerts: list[ZtfAlert | LsstAlert] = []
+    while len(alerts) < limit:
+        page_size = min(ALERTS_PAGE_SIZE, limit - len(alerts))
+        response = _request(
+            "GET",
+            f"/surveys/{survey}/alerts",
+            params={**params, "limit": page_size, "skip": len(alerts)},
+        )
+        page = response.get("data", [])
+        alerts.extend(alert_model.model_validate(alert) for alert in page)
+        if len(page) < page_size:
+            break
+    return alerts
 
 
 def cone_search_alerts(
