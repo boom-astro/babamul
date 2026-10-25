@@ -8,6 +8,7 @@ import os
 import platform
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Literal, cast, get_args
 
 import httpx
@@ -23,13 +24,16 @@ from .models import (
     LsstAlert,
     ObjectSearchResult,
     ObjPhotometry,
+    Track,
     UserProfile,
+    VillarFit,
     ZtfAlert,
 )
 
 logger = logging.getLogger(__name__)
 
 Survey = Literal["ZTF", "LSST"]
+WhichAlert = Literal["first", "last", "brightest", "faintest"]
 
 
 @lru_cache(maxsize=1)
@@ -82,6 +86,7 @@ def _request(
     *,
     params: dict[str, Any] | None = None,
     json: dict[str, Any] | None = None,
+    timeout: float = 30.0,
 ) -> dict[str, Any]:
     """Make an authenticated HTTP request to the Babamul API.
 
@@ -95,6 +100,8 @@ def _request(
         Query parameters.
     json : dict | None
         JSON body for POST requests.
+    timeout : float
+        Request timeout in seconds.
 
     Returns
     -------
@@ -124,7 +131,7 @@ def _request(
             params=params,
             json=json,
             headers=headers,
-            timeout=30.0,
+            timeout=timeout,
         )
     except httpx.RequestError as e:
         raise APIError(f"Request failed: {e}") from e
@@ -443,6 +450,100 @@ def cone_search_alerts(
     return results
 
 
+def skymap_search_alerts(
+    survey: Survey,
+    start_jd: float,
+    end_jd: float,
+    *,
+    skymap: str | Path | bytes | None = None,
+    moc: str | Path | bytes | None = None,
+    credible_level: float | None = None,
+    min_magpsf: float | None = None,
+    max_magpsf: float | None = None,
+    min_drb: float | None = None,
+    max_drb: float | None = None,
+    is_rock: bool | None = None,
+    is_star: bool | None = None,
+    is_near_brightstar: bool | None = None,
+    is_stationary: bool | None = None,
+    limit: int | None = None,
+) -> list[ZtfAlert | LsstAlert]:
+    """Query the alerts inside a localization region, e.g. a GW skymap.
+
+    Parameters
+    ----------
+    survey : Survey
+        The survey to query ("ZTF" or "LSST").
+    start_jd : float
+        Start Julian Date.
+    end_jd : float
+        End Julian Date (at most 7 days after *start_jd*).
+    skymap : str | Path | bytes | None
+        HEALPix skymap FITS file, as a path or its content. A 3D skymap
+        (LIGO/Virgo/KAGRA BAYESTAR) is searched in its credible volume, using
+        the redshift of cross-matched host galaxies. Exactly one of *skymap*
+        or *moc* is required.
+    moc : str | Path | bytes | None
+        MOC FITS file, as a path or its content.
+    credible_level : float | None
+        Credible level of the *skymap* region (server default 0.9).
+    min_magpsf, max_magpsf : float | None
+        PSF magnitude range.
+    min_drb, max_drb : float | None
+        DRB (reliability) score range.
+    is_rock, is_star, is_near_brightstar, is_stationary : bool | None
+        Same filters as in `get_alerts`.
+    limit : int | None
+        Maximum number of alerts (server default and maximum 10000).
+
+    Returns
+    -------
+    list[ZtfAlert | LsstAlert]
+        Alerts in the region. For a 3D skymap, ``host_searched_prob_vol`` is
+        the best searched probability volume among their host candidates.
+    """
+    if (skymap is None) == (moc is None):
+        raise ValueError("Provide exactly one of skymap or moc.")
+
+    def encode(fits: str | Path | bytes) -> str:
+        content = fits if isinstance(fits, bytes) else Path(fits).read_bytes()
+        return base64.b64encode(content).decode()
+
+    body = {
+        key: value
+        for key, value in {
+            "skymap_fits_base64": encode(skymap)
+            if skymap is not None
+            else None,
+            "moc_fits_base64": encode(moc) if moc is not None else None,
+            "credible_level": credible_level,
+            "start_jd": start_jd,
+            "end_jd": end_jd,
+            "min_magpsf": min_magpsf,
+            "max_magpsf": max_magpsf,
+            "min_drb": min_drb,
+            "max_drb": max_drb,
+            "is_rock": is_rock,
+            "is_star": is_star,
+            "is_near_brightstar": is_near_brightstar,
+            "is_stationary": is_stationary,
+            "limit": limit,
+        }.items()
+        if value is not None
+    }
+
+    response = _request(
+        "POST",
+        f"/surveys/{survey}/alerts/skymap-search",
+        json=body,
+        timeout=300.0,
+    )
+    alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
+    return [
+        alert_model.model_validate(alert) for alert in response.get("data", [])
+    ]
+
+
 def cone_search_objects(
     survey: Survey,
     coordinates: SkyCoord
@@ -610,7 +711,10 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     """
     params = {"candid": candid}
     response = _request("GET", f"/surveys/{survey}/cutouts", params=params)
-    data = response.get("data", response)
+    return _decode_cutouts(response.get("data", response))
+
+
+def _decode_cutouts(data: dict[str, Any]) -> AlertCutouts:
     return AlertCutouts(
         candid=data["candid"],
         cutoutScience=base64.b64decode(data["cutoutScience"])
@@ -623,6 +727,55 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
         if data.get("cutoutDifference")
         else b"",
     )
+
+
+def get_cutouts_bulk(
+    survey: Survey,
+    candids: list[int],
+    n_threads: int = 1,
+    batch_size: int = 100,
+) -> dict[int, AlertCutouts]:
+    """Get cutout images for multiple alerts in bulk.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ZTF" or "LSST").
+    candids : list[int]
+        Candidate IDs of the alerts.
+    n_threads : int
+        Number of parallel requests (1-12).
+    batch_size : int
+        Candidate IDs per request (1-100).
+
+    Returns
+    -------
+    dict[int, AlertCutouts]
+        Cutouts by candidate ID. Alerts without cutouts are left out.
+    """
+    if n_threads < 1 or n_threads > 12:
+        raise ValueError("Number of threads must be between 1 and 12.")
+    if batch_size < 1 or batch_size > 100:
+        raise ValueError("Batch size must be between 1 and 100.")
+    results = {}
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        futures = [
+            executor.submit(
+                _request,
+                "POST",
+                f"/surveys/{survey}/cutouts",
+                json={"candids": candids[i : i + batch_size]},
+            )
+            for i in range(0, len(candids), batch_size)
+        ]
+        for future in as_completed(futures):
+            try:
+                data = future.result().get("data", {})
+                for cutouts in data.get("cutouts", []):
+                    results[cutouts["candid"]] = _decode_cutouts(cutouts)
+            except Exception as e:
+                logger.error(f"Error fetching cutouts batch: {e}")
+    return results
 
 
 def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
@@ -759,6 +912,67 @@ def get_cross_matches_bulk(
             except Exception as e:
                 logger.error(f"Error fetching cross-matches batch: {e}")
     return results
+
+
+def get_track(survey: Survey, track_id: str) -> Track:
+    """Get a moving-object track, restricted to its public detections.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey (only "ZTF" has tracks).
+    track_id : str
+        Track ID, e.g. ``BT000001``.
+
+    Returns
+    -------
+    Track
+        The track, with the candidate IDs and epochs of its detections and
+        its orbit fit if there is one.
+    """
+    response = _request("GET", f"/surveys/{survey}/tracks/{track_id}")
+    return Track.model_validate(response.get("data", response))
+
+
+def get_villar_fit(
+    survey: Survey,
+    *,
+    candid: int | None = None,
+    object_id: str | None = None,
+    which: WhichAlert | None = None,
+) -> VillarFit:
+    """Get the Villar light curve fit of an alert.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey (only "ZTF" has Villar fits).
+    candid : int | None
+        Candidate ID of the alert.
+    object_id : str | None
+        Object ID, used when *candid* is not given.
+    which : WhichAlert | None
+        Which fitted alert of *object_id* to use (server default "last").
+
+    Returns
+    -------
+    VillarFit
+        Fit quality, peak magnitude, and model parameters keyed as
+        ``{param}_{filter}`` (e.g. ``A_ZTF_g``).
+    """
+    if candid is None and object_id is None:
+        raise ValueError("Provide candid or object_id.")
+    params = {
+        key: value
+        for key, value in {
+            "candid": candid,
+            "objectId": object_id,
+            "which": which,
+        }.items()
+        if value is not None
+    }
+    response = _request("GET", f"/surveys/{survey}/villar-fit", params=params)
+    return VillarFit.model_validate(response.get("data", response))
 
 
 def search_objects(
