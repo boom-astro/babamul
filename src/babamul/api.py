@@ -172,6 +172,7 @@ def get_alerts(
     is_star: bool | None = None,
     is_near_brightstar: bool | None = None,
     is_stationary: bool | None = None,
+    limit: int = 100_000,
 ) -> list[ZtfAlert | LsstAlert]:
     """Query alerts from the API.
 
@@ -207,6 +208,8 @@ def get_alerts(
         Filter for sources near bright stars.
     is_stationary : bool | None
         Filter for likely stationary sources (not moving).
+    limit : int
+        Maximum number of alerts to return (default 100000).
 
     Returns
     -------
@@ -237,16 +240,18 @@ def get_alerts(
 
     alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
     alerts: list[ZtfAlert | LsstAlert] = []
-    while True:
+    while len(alerts) < limit:
+        page_size = min(ALERTS_PAGE_SIZE, limit - len(alerts))
         response = _request(
             "GET",
             f"/surveys/{survey}/alerts",
-            params={**params, "limit": ALERTS_PAGE_SIZE, "skip": len(alerts)},
+            params={**params, "limit": page_size, "skip": len(alerts)},
         )
         page = response.get("data", [])
         alerts.extend(alert_model.model_validate(alert) for alert in page)
-        if len(page) < ALERTS_PAGE_SIZE:
-            return alerts
+        if len(page) < page_size:
+            break
+    return alerts
 
 
 def cone_search_alerts(
