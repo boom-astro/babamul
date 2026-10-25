@@ -31,6 +31,8 @@ logger = logging.getLogger(__name__)
 
 Survey = Literal["ZTF", "LSST"]
 
+ALERTS_PAGE_SIZE = 10000
+
 
 @lru_cache(maxsize=1)
 def get_user_agent() -> str:
@@ -233,10 +235,18 @@ def get_alerts(
         if value is not None
     }
 
-    response = _request("GET", f"/surveys/{survey}/alerts", params=params)
-    data = response.get("data", [])
     alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
-    return [alert_model.model_validate(alert) for alert in data]
+    alerts: list[ZtfAlert | LsstAlert] = []
+    while True:
+        response = _request(
+            "GET",
+            f"/surveys/{survey}/alerts",
+            params={**params, "limit": ALERTS_PAGE_SIZE, "skip": len(alerts)},
+        )
+        page = response.get("data", [])
+        alerts.extend(alert_model.model_validate(alert) for alert in page)
+        if len(page) < ALERTS_PAGE_SIZE:
+            return alerts
 
 
 def cone_search_alerts(
