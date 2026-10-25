@@ -708,7 +708,10 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
     """
     params = {"candid": candid}
     response = _request("GET", f"/surveys/{survey}/cutouts", params=params)
-    data = response.get("data", response)
+    return _decode_cutouts(response.get("data", response))
+
+
+def _decode_cutouts(data: dict[str, Any]) -> AlertCutouts:
     return AlertCutouts(
         candid=data["candid"],
         cutoutScience=base64.b64decode(data["cutoutScience"])
@@ -721,6 +724,55 @@ def get_cutouts(survey: Survey, candid: int) -> AlertCutouts:
         if data.get("cutoutDifference")
         else b"",
     )
+
+
+def get_cutouts_bulk(
+    survey: Survey,
+    candids: list[int],
+    n_threads: int = 1,
+    batch_size: int = 100,
+) -> dict[int, AlertCutouts]:
+    """Get cutout images for multiple alerts in bulk.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey ("ZTF" or "LSST").
+    candids : list[int]
+        Candidate IDs of the alerts.
+    n_threads : int
+        Number of parallel requests (1-12).
+    batch_size : int
+        Candidate IDs per request (1-100).
+
+    Returns
+    -------
+    dict[int, AlertCutouts]
+        Cutouts by candidate ID. Alerts without cutouts are left out.
+    """
+    if n_threads < 1 or n_threads > 12:
+        raise ValueError("Number of threads must be between 1 and 12.")
+    if batch_size < 1 or batch_size > 100:
+        raise ValueError("Batch size must be between 1 and 100.")
+    results = {}
+    with ThreadPoolExecutor(max_workers=n_threads) as executor:
+        futures = [
+            executor.submit(
+                _request,
+                "POST",
+                f"/surveys/{survey}/cutouts",
+                json={"candids": candids[i : i + batch_size]},
+            )
+            for i in range(0, len(candids), batch_size)
+        ]
+        for future in as_completed(futures):
+            try:
+                data = future.result().get("data", {})
+                for cutouts in data.get("cutouts", []):
+                    results[cutouts["candid"]] = _decode_cutouts(cutouts)
+            except Exception as e:
+                logger.error(f"Error fetching cutouts batch: {e}")
+    return results
 
 
 def get_object(survey: Survey, object_id: str) -> ZtfAlert | LsstAlert:
