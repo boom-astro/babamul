@@ -24,6 +24,7 @@ from .models import (
     LsstAlert,
     ObjectSearchResult,
     ObjPhotometry,
+    Track,
     UserProfile,
     ZtfAlert,
 )
@@ -909,6 +910,26 @@ def get_cross_matches_bulk(
             except Exception as e:
                 logger.error(f"Error fetching cross-matches batch: {e}")
     return results
+
+
+def get_track(survey: Survey, track_id: str) -> Track:
+    """Get a moving-object track, restricted to its public detections.
+
+    Parameters
+    ----------
+    survey : Survey
+        Survey (only "ZTF" has tracks).
+    track_id : str
+        Track ID, e.g. ``BT000001``.
+
+    Returns
+    -------
+    Track
+        The track, with the candidate IDs and epochs of its detections and
+        its orbit fit if there is one.
+    """
+    response = _request("GET", f"/surveys/{survey}/tracks/{track_id}")
+    return Track.model_validate(response.get("data", response))
 
 
 def search_objects(

@@ -31,6 +31,7 @@ __all__ = [
     "ObjectSearchResult",
     "ObjPhotometry",
     "Photometry",
+    "Track",
     "UserProfile",
     "ZtfAlert",
     "ZtfCandidate",
@@ -78,6 +79,37 @@ class UserProfile(BaseModel):
     username: str
     email: str
     created_at: int
+
+
+class TrackOrbit(BaseModel):
+    """Heliocentric state vector of a track's orbit fit."""
+
+    epoch_jd: float
+    pos: list[float]
+    vel: list[float]
+    e: float | None = None
+    q: float | None = None
+
+
+class Track(BaseModel):
+    """Moving-object track linked from public detections."""
+
+    id: str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    members: list[int]
+    epochs: list[float] = Field(default_factory=list)
+    bound_fit: str | None = None
+    bound_fit_residual_arcsec: float | None = None
+    bound_fit_detections: int | None = None
+    n_detections: int
+    n_nights: int
+    arc_days: float
+    first_jd: float
+    last_jd: float
+    designation: str | None = None
+    kind: str | None = None
+    near_planet: str | None = None
+    updated_at: float = 0.0
+    orbit: TrackOrbit | None = None
 
 
 class CatalogMatch(BaseModel):
