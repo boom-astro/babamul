@@ -1,11 +1,20 @@
 """Pydantic models for Babamul alerts."""
 
 from datetime import timezone
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 import matplotlib.pyplot as plt
 from astropy.time import Time
-from pydantic import AliasChoices, BaseModel, Field, computed_field
+from pydantic import (
+    AliasChoices,
+    BaseModel,
+    ConfigDict,
+    Field,
+    PrivateAttr,
+    ValidatorFunctionWrapHandler,
+    computed_field,
+    model_validator,
+)
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
@@ -31,7 +40,9 @@ __all__ = [
     "ObjectSearchResult",
     "ObjPhotometry",
     "Photometry",
+    "Track",
     "UserProfile",
+    "VillarFit",
     "ZtfAlert",
     "ZtfCandidate",
     "add_cross_matches",
@@ -80,7 +91,51 @@ class UserProfile(BaseModel):
     created_at: int
 
 
-class NedMatch(BaseModel):
+class TrackOrbit(BaseModel):
+    """Heliocentric state vector of a track's orbit fit."""
+
+    epoch_jd: float
+    pos: list[float]
+    vel: list[float]
+    e: float | None = None
+    q: float | None = None
+
+
+class Track(BaseModel):
+    """Moving-object track linked from public detections."""
+
+    id: str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    members: list[int]
+    epochs: list[float] = Field(default_factory=list)
+    bound_fit: str | None = None
+    bound_fit_residual_arcsec: float | None = None
+    bound_fit_detections: int | None = None
+    n_detections: int
+    n_nights: int
+    arc_days: float
+    first_jd: float
+    last_jd: float
+    designation: str | None = None
+    kind: str | None = None
+    near_planet: str | None = None
+    updated_at: float = 0.0
+    orbit: TrackOrbit | None = None
+
+
+class VillarFit(BaseModel):
+    """Villar light curve fit of an alert."""
+
+    candid: int
+    reduced_chi2: float | None = None
+    peak_mag: float | None = None
+    params: dict[str, float] = Field(default_factory=dict)
+
+
+class CatalogMatch(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+
+class NedMatch(CatalogMatch):
     objname: str | None = Field(
         None, validation_alias=AliasChoices("objname", "obj_name", "_id")
     )
@@ -98,7 +153,7 @@ class NedMatch(BaseModel):
     distance_kpc: float | None = None
 
 
-class CatwiseMatch(BaseModel):
+class CatwiseMatch(CatalogMatch):
     source_name: str
     ra: float
     dec: float
@@ -118,7 +173,7 @@ class CatwiseMatch(BaseModel):
     distance_arcsec: float | None = None
 
 
-class VsxMatch(BaseModel):
+class VsxMatch(CatalogMatch):
     name: str
     var_flag: str | int | None = None
     ra: float
@@ -135,14 +190,15 @@ class VsxMatch(BaseModel):
     distance_arcsec: float | None = None
 
 
-class MilliquasarMatch(BaseModel):
-    _id: str
+class MilliquasarMatch(CatalogMatch):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
     ra: float
     dec: float
+    objtype: str | None = None
     distance_arcsec: float | None = None
 
 
-class GaiaMatch(BaseModel):
+class GaiaMatch(CatalogMatch):
     id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
     ra: float
     dec: float
@@ -164,7 +220,7 @@ class GaiaMatch(BaseModel):
     distance_arcsec: float | None = None
 
 
-class LSPSCMatch(BaseModel):
+class LSPSCMatch(CatalogMatch):
     id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
     ra: float
     dec: float
@@ -173,8 +229,144 @@ class LSPSCMatch(BaseModel):
     distance_arcsec: float | None = None
 
 
+class TwoMassMatch(CatalogMatch):
+    id: str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    j_m: float | None = None
+    j_msigcom: float | None = None
+    j_snr: float | None = None
+    h_m: float | None = None
+    h_msigcom: float | None = None
+    h_snr: float | None = None
+    k_m: float | None = None
+    k_msigcom: float | None = None
+    k_snr: float | None = None
+    ndet: int | str | None = None
+    distance_arcsec: float | None = None
+
+
+class GalexMatch(CatalogMatch):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    fuv_mag: float | None = None
+    fuv_magerr: float | None = None
+    nuv_mag: float | None = None
+    nuv_magerr: float | None = None
+    fuv_exp: float | None = None
+    nuv_exp: float | None = None
+    obstype: int | None = None
+    band: int | None = None
+    distance_arcsec: float | None = None
+
+
+class TnsMatch(CatalogMatch):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    name_prefix: str | None = None
+    name: str | None = None
+    ra: float
+    dec: float
+    type: str | None = None
+    redshift: float | None = None
+    discovery_mag: float | None = None
+    discovery_jd: float | None = None
+    internal_names: list[str] | str | None = None
+    distance_arcsec: float | None = None
+
+
+class DesiMatch(CatalogMatch):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    z: float | None = None
+    zerr: float | None = None
+    zwarn: int | None = None
+    chi2: float | None = None
+    deltachi2: float | None = None
+    spectype: str | None = None
+    zcat_nspec: int | None = None
+    distance_arcsec: float | None = None
+    distance_kpc: float | None = None
+
+
+class Ps1Match(CatalogMatch):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    gMeanPSFMag: float | None = None
+    gMeanPSFMagErr: float | None = None
+    rMeanPSFMag: float | None = None
+    rMeanPSFMagErr: float | None = None
+    iMeanPSFMag: float | None = None
+    iMeanPSFMagErr: float | None = None
+    zMeanPSFMag: float | None = None
+    zMeanPSFMagErr: float | None = None
+    yMeanPSFMag: float | None = None
+    yMeanPSFMagErr: float | None = None
+    strm_class: str | None = None
+    strm_prob_galaxy: float | None = None
+    strm_prob_qso: float | None = None
+    strm_prob_star: float | None = None
+    strm_uid: int | None = None
+    strm_z_phot: float | None = None
+    strm_z_phot_err: float | None = None
+    distance_arcsec: float | None = None
+
+
+class LsDr10Match(CatalogMatch):
+    id: int | str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    objtype: str | None = None
+    ebv: float | None = None
+    z_spec: float | None = None
+    survey: str | None = None
+    z_phot_mean: float | None = None
+    z_phot_median: float | None = None
+    z_phot_std: float | None = None
+    z_phot_l95: float | None = None
+    z_phot_u95: float | None = None
+    flux_g: float | None = None
+    flux_r: float | None = None
+    flux_i: float | None = None
+    flux_z: float | None = None
+    flux_w1: float | None = None
+    flux_w2: float | None = None
+    flux_w3: float | None = None
+    flux_w4: float | None = None
+    shape_r: float | None = None
+    shape_e1: float | None = None
+    shape_e2: float | None = None
+    sersic: float | None = None
+    flux_ivar_r: float | None = None
+    fracflux_r: float | None = None
+    distance_arcsec: float | None = None
+    distance_kpc: float | None = None
+
+
+class AllWiseMatch(CatalogMatch):
+    id: str = Field(..., validation_alias=AliasChoices("id", "_id"))
+    ra: float
+    dec: float
+    w1mpro: float | None = None
+    w2mpro: float | None = None
+    w3mpro: float | None = None
+    w4mpro: float | None = None
+    distance_arcsec: float | None = None
+
+
 class CrossMatches(BaseModel):
-    """Cross-matches with other surveys."""
+    """Cross-matches with other surveys.
+
+    Any catalog can be read by its server name, e.g.
+    ``cross_matches["2MASS_PSC"]``; catalogs without a field below come back
+    as raw dicts.
+    """
+
+    model_config = ConfigDict(extra="allow")
+
+    _catalogs: list[str] = PrivateAttr(default_factory=list)
 
     # survey name -> list of matches
     ned: list[NedMatch] | None = Field(
@@ -202,6 +394,51 @@ class CrossMatches(BaseModel):
             "lspsc", "LSPSC", "LegacySurveyPSCCatalog"
         ),
     )
+    twomass: list[TwoMassMatch] | None = Field(
+        [], validation_alias=AliasChoices("twomass", "2MASS_PSC")
+    )
+    galex: list[GalexMatch] | None = Field(
+        [], validation_alias=AliasChoices("galex", "GALEX")
+    )
+    tns: list[TnsMatch] | None = Field(
+        [], validation_alias=AliasChoices("tns", "TNS")
+    )
+    desi: list[DesiMatch] | None = Field(
+        [], validation_alias=AliasChoices("desi", "DESI_DR1")
+    )
+    ps1: list[Ps1Match] | None = Field(
+        [], validation_alias=AliasChoices("ps1", "PS1_DR2")
+    )
+    lsdr10: list[LsDr10Match] | None = Field(
+        [], validation_alias=AliasChoices("lsdr10", "LSDR10")
+    )
+    allwise: list[AllWiseMatch] | None = Field(
+        [], validation_alias=AliasChoices("allwise", "AllWISE")
+    )
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _keep_catalog_names(
+        cls, data: Any, handler: ValidatorFunctionWrapHandler
+    ) -> "CrossMatches":
+        cross_matches = cast(CrossMatches, handler(data))
+        if isinstance(data, dict):
+            cross_matches._catalogs = list(data)
+        return cross_matches
+
+    def catalogs(self) -> list[str]:
+        """Names of the catalogs returned by the server."""
+        return sorted(self._catalogs)
+
+    def __getitem__(self, catalog: str) -> list[Any]:
+        for name, field in type(self).model_fields.items():
+            aliases = getattr(field.validation_alias, "choices", [])
+            if catalog == name or catalog in aliases:
+                return cast(list[Any], getattr(self, name) or [])
+        extra = self.model_extra or {}
+        if catalog in extra:
+            return cast(list[Any], extra[catalog])
+        raise KeyError(catalog)
 
 
 # here we just want to re-export the raw model we autogenerated from
@@ -214,6 +451,7 @@ class ZtfAlert(EnrichedZtfAlert):
 
     topic: str | None = None
     cross_matches: CrossMatches | None = None
+    host_searched_prob_vol: float | None = None
 
     def get_photometry(self, deduplicated: bool = True) -> list[Photometry]:
         """Combine and return all photometry data from the alert."""
@@ -508,6 +746,7 @@ class LsstAlert(EnrichedLsstAlert):
 
     topic: str | None = None
     cross_matches: CrossMatches | None = None
+    host_searched_prob_vol: float | None = None
 
     def get_photometry(self, deduplicated: bool = True) -> list[Photometry]:
         """Combine and return all photometry data from the alert."""
