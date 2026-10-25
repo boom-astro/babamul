@@ -218,8 +218,12 @@ with AlertConsumer(topics=["babamul.*.*.hosted"], ...) as consumer:
 
 ## Privacy
 
-This package contains no analytics or telemetry SDK. It does not phone home,
-and it collects and transmits nothing about you or your machine.
+This package contains no analytics or telemetry SDK, and it collects and
+transmits nothing about you or your machine.
+
+At most once a day, on import, it asks PyPI for the list of babamul releases so
+it can warn you when a newer version is out. Set `BABAMUL_NO_VERSION_CHECK=1`
+to turn this off.
 
 The one piece of client information the BOOM servers see is a standard
 software-description string, sent as the `User-Agent` header on API requests

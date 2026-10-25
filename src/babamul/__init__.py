@@ -10,6 +10,7 @@ from importlib.metadata import version
 __version__ = version("babamul")
 
 from . import api, topics
+from ._version_check import check_version
 from .api import (
     get_alerts,
     get_cutouts,
@@ -35,6 +36,8 @@ from .models import (
     ZtfCandidate,
     add_cross_matches,
 )
+
+check_version(__version__)
 
 __all__ = [
     "api",
