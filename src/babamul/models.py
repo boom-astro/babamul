@@ -372,6 +372,7 @@ class ZtfAlert(EnrichedZtfAlert):
 
     topic: str | None = None
     cross_matches: CrossMatches | None = None
+    host_searched_prob_vol: float | None = None
 
     def get_photometry(self, deduplicated: bool = True) -> list[Photometry]:
         """Combine and return all photometry data from the alert."""
@@ -666,6 +667,7 @@ class LsstAlert(EnrichedLsstAlert):
 
     topic: str | None = None
     cross_matches: CrossMatches | None = None
+    host_searched_prob_vol: float | None = None
 
     def get_photometry(self, deduplicated: bool = True) -> list[Photometry]:
         """Combine and return all photometry data from the alert."""

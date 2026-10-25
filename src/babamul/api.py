@@ -8,6 +8,7 @@ import os
 import platform
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import lru_cache
+from pathlib import Path
 from typing import Any, Literal, cast, get_args
 
 import httpx
@@ -82,6 +83,7 @@ def _request(
     *,
     params: dict[str, Any] | None = None,
     json: dict[str, Any] | None = None,
+    timeout: float = 30.0,
 ) -> dict[str, Any]:
     """Make an authenticated HTTP request to the Babamul API.
 
@@ -95,6 +97,8 @@ def _request(
         Query parameters.
     json : dict | None
         JSON body for POST requests.
+    timeout : float
+        Request timeout in seconds.
 
     Returns
     -------
@@ -124,7 +128,7 @@ def _request(
             params=params,
             json=json,
             headers=headers,
-            timeout=30.0,
+            timeout=timeout,
         )
     except httpx.RequestError as e:
         raise APIError(f"Request failed: {e}") from e
@@ -441,6 +445,100 @@ def cone_search_alerts(
                 logger.error(f"Error processing cone search batch: {e}")
 
     return results
+
+
+def skymap_search_alerts(
+    survey: Survey,
+    start_jd: float,
+    end_jd: float,
+    *,
+    skymap: str | Path | bytes | None = None,
+    moc: str | Path | bytes | None = None,
+    credible_level: float | None = None,
+    min_magpsf: float | None = None,
+    max_magpsf: float | None = None,
+    min_drb: float | None = None,
+    max_drb: float | None = None,
+    is_rock: bool | None = None,
+    is_star: bool | None = None,
+    is_near_brightstar: bool | None = None,
+    is_stationary: bool | None = None,
+    limit: int | None = None,
+) -> list[ZtfAlert | LsstAlert]:
+    """Query the alerts inside a localization region, e.g. a GW skymap.
+
+    Parameters
+    ----------
+    survey : Survey
+        The survey to query ("ZTF" or "LSST").
+    start_jd : float
+        Start Julian Date.
+    end_jd : float
+        End Julian Date (at most 7 days after *start_jd*).
+    skymap : str | Path | bytes | None
+        HEALPix skymap FITS file, as a path or its content. A 3D skymap
+        (LIGO/Virgo/KAGRA BAYESTAR) is searched in its credible volume, using
+        the redshift of cross-matched host galaxies. Exactly one of *skymap*
+        or *moc* is required.
+    moc : str | Path | bytes | None
+        MOC FITS file, as a path or its content.
+    credible_level : float | None
+        Credible level of the *skymap* region (server default 0.9).
+    min_magpsf, max_magpsf : float | None
+        PSF magnitude range.
+    min_drb, max_drb : float | None
+        DRB (reliability) score range.
+    is_rock, is_star, is_near_brightstar, is_stationary : bool | None
+        Same filters as in `get_alerts`.
+    limit : int | None
+        Maximum number of alerts (server default and maximum 10000).
+
+    Returns
+    -------
+    list[ZtfAlert | LsstAlert]
+        Alerts in the region. For a 3D skymap, ``host_searched_prob_vol`` is
+        the best searched probability volume among their host candidates.
+    """
+    if (skymap is None) == (moc is None):
+        raise ValueError("Provide exactly one of skymap or moc.")
+
+    def encode(fits: str | Path | bytes) -> str:
+        content = fits if isinstance(fits, bytes) else Path(fits).read_bytes()
+        return base64.b64encode(content).decode()
+
+    body = {
+        key: value
+        for key, value in {
+            "skymap_fits_base64": encode(skymap)
+            if skymap is not None
+            else None,
+            "moc_fits_base64": encode(moc) if moc is not None else None,
+            "credible_level": credible_level,
+            "start_jd": start_jd,
+            "end_jd": end_jd,
+            "min_magpsf": min_magpsf,
+            "max_magpsf": max_magpsf,
+            "min_drb": min_drb,
+            "max_drb": max_drb,
+            "is_rock": is_rock,
+            "is_star": is_star,
+            "is_near_brightstar": is_near_brightstar,
+            "is_stationary": is_stationary,
+            "limit": limit,
+        }.items()
+        if value is not None
+    }
+
+    response = _request(
+        "POST",
+        f"/surveys/{survey}/alerts/skymap-search",
+        json=body,
+        timeout=300.0,
+    )
+    alert_model = ZtfAlert if survey == "ZTF" else LsstAlert
+    return [
+        alert_model.model_validate(alert) for alert in response.get("data", [])
+    ]
 
 
 def cone_search_objects(
